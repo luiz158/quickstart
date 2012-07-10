@@ -1,0 +1,130 @@
+[[sid-8094265_GettingStartedDevelopingApplicationsGuide-CDIServlet%3AHelloworldquickstart]]
+
+== CDI + Servlet: Helloworld quickstart
+
+This quickstart shows you how to deploy a simple servlet to JBoss AS. The business logic is encapsulated in a service, which is provided as a CDI bean, and injected into the Servlet.
+
+
+[TIP]
+.Contexts and Dependency Injection for Java EE
+====
+CDI is a new specification in Java EE 6, inspired by JBoss Seam and Google Guice, and also drawing on lessons learned from frameworks such as Spring. It allows application developers to concentrate on developing their application logic by providing the ability to wire services together, and abstract out orthogonal concerns, all in a type safe manner.
+
+
+====
+
+
+ Switch to the quickstarts/helloworld directory and instruct Maven to build and deploy the application: 
+
+
+----
+mvn package jboss-as:deploy
+----
+
+ The quickstart uses a Maven plugin to deploy the application. The plugin requires JBoss AS to be running (you can find out how to start the server in <<sid-8094268>> or <<sid-8094269>> ). 
+
+ Now, check if the application has deployed properly by clicking link:$$http://localhost:8080/jboss-as-helloworld/HelloWorld$$[http://localhost:8080/jboss-as-helloworld] . If you see a "Hello World" message it's all working! 
+
+
+[TIP]
+====
+Should you wish to undeploy the quickstart, or redeploy after making some changes, it's pretty easy:
+
+
+*  mvn jboss-as:deploy - deploy any changes to the application to the application server 
+
+
+*  mvn jboss-as:undeploy - undeploy the example from JBoss AS 
+
+
+====
+
+
+It's time to pull the covers back and dive into the internals of the example application.
+
+[[sid-8094265_GettingStartedDevelopingApplicationsGuide-DeployingtheHelloworldexampleusingEclipse]]
+
+
+===Deploying the Helloworld example using Eclipse
+
+ You may choose to deploy the example using Eclipse. You'll need to have JBoss AS started in Eclipse (as described  in <<sid-8094270>> ) and to have imported the quickstarts into Eclipse (as described in <<sid-8094271>> ). 
+
+ With the quickstarts imported, you can deploy the example by right clicking on the jboss-as-helloworld project, and choosing Run As -&gt; Run On Server : 
+
+ 
+.
+image::[]
+
+ 
+
+ Make sure the JBoss AS server is selected, and hit Finish : 
+
+ 
+.
+image::[]
+
+ 
+
+ You should see JBoss AS start up (unless you already started it in <<sid-8094270>> ) and the application deploy in the Console log: 
+
+ 
+.
+image::[]
+
+ 
+
+[[sid-8094265_GettingStartedDevelopingApplicationsGuide-Thehelloworldexampleindepth]]
+
+
+===The helloworld example in depth
+
+The helloworld is very simple - all it does is print "Hello World" onto a web page.
+
+ The helloworld example is comprised a servlet and a CDI bean. We also include an empty beans.xml file, which tells JBoss AS to look for beans in this application and to activate the CDI. beans.xml is located in WEB-INF , which can be found in the src/main/webapp directory of the example. Also in this directory we include index.html which uses a simple meta refresh to send the users browser to the Servlet, which is located at link:$$http://localhost:8080/jboss-as-helloworld/HelloWorld$$[] . 
+
+ All the configuration files for this example are located in WEB-INF/ , which can be found in the src/main/webapp directory of the example. 
+
+ Notice that we don't even need a web.xml ! 
+
+Let's start by taking a look at the servlet:
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/helloworld/src/main/java/org/jboss/as/quickstarts/helloworld/HelloWorldServlet.java status code: 404.
+
+[options="header"]
+|===============
+|Line|Note
+|27| If you've used Servlet before, then you'll remember having to use xml to register your servlets. Fortunately, this is a thing of the past. Now all you need to do is add the @WebServlet annotation, and provide a mapping to a URL used to access the servlet. Much cleaner! 
+|30-32|Every web page needs to be correctly formed HTML. We've created static Strings to hold the minimum header and footer to write out.
+|34,35| We inject the HelloService (a CDI bean) which generates the actual message. This allows to alter the implementation of HelloService at a later date without changing the view layer at all (assuming we don't alter the API of HelloService ). 
+|41|We call into the service to generate the message "Hello World", and write it out to the HTTP request.
+
+|===============
+
+
+
+[TIP]
+====
+ The package declaration and imports have been excluded from these listings. The complete listing is available in the example source code. 
+
+
+====
+
+
+Now we understand how the information is sent to the browser, let's take a look at the service.
+
+.HelloService.java
+
+====
+----
+public class HelloService {
+
+   String createHelloMessage(String name) {
+      return "Hello " + name + "!";
+   }
+
+}
+----
+
+====
+The service is very simple - no registration (XML or annotation) is required!
+

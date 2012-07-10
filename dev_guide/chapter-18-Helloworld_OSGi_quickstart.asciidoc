@@ -1,0 +1,486 @@
+[[sid-8094289]]
+
+== Helloworld OSGi quickstart
+
+This quickstart shows you how to create and deploy a simple OSGi Bundle.
+
+
+[TIP]
+.What is OSGi?
+====
+OSGi is a new feature in JBoss AS 7. It provides standards-based modularity and micro-services as defined in the OSGi 4.2 Core Specifications. You can deploy OSGi bundles directly into JBoss AS.
+
+ For more information on OSGi and on how to develop OSGi bundles, see the link:$$http://www.osgi.org/Download/Release4V42$$[OSGi 4.2 Core Specification] and the link:$$http://www.osgi.org/javadoc/r4v42$$[OSGi 4.2 Core Javadoc] . 
+
+ More information on the OSGi component in JBoss AS can be found on the link:$$http://www.jboss.org/jbossas/osgi$$[JBoss OSGi project pages] . 
+
+
+====
+
+
+ Switch to the quickstarts/helloworld-osgi directory and instruct Maven to build and deploy the application: 
+
+
+----
+mvn package jboss-as:deploy
+----
+
+Now, you should see the OSGi subsystem start up, and the bundle deployed and started:
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+
+[TIP]
+====
+If you wish to undeploy the quickstart, or redeploy after making some changes, it's pretty easy:
+
+
+*  mvn jboss-as:deploy - deploy any changes to the application to the application server 
+
+
+*  mvn jboss-as:undeploy - undeploy the example from JBoss AS 
+
+
+====
+
+
+[[sid-8094289_HelloworldOSGiquickstart-TheHelloworldOSGiexampleindepth]]
+
+
+===The Helloworld OSGi example in depth
+
+The OSGi Bundle has one Java Source file, the Bundle Activator:
+
+.Activator.java
+
+====
+----
+01. package org.jboss.as.quickstarts.helloworld.osgi;
+02.
+03. import org.osgi.framework.BundleActivator;
+04. import org.osgi.framework.BundleContext;
+05.
+06. public class Activator implements BundleActivator {
+07.    public void start(BundleContext context) throws Exception {
+08.       System.out.println("Hello AS7 World!!");
+09.    }
+10.
+11.    public void stop(BundleContext context) throws Exception {
+12.       System.out.println("Bye AS7 World!!");
+13.    }
+14. }
+----
+
+====
+The bundle activator is very simple, and just prints out a message when the bundle starts and stops - allowing you to verify that OSGi is working properly.
+
+ Now, let's look at the pom.xml , where we create the bundle: 
+
+.pom.xml
+
+====
+----
+002. &lt;project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+003.    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+004.    http://maven.apache.org/maven-v4_0_0.xsd"&gt;
+005.    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+006.
+007.    &lt;groupId&gt;org.jboss.as.quickstarts&lt;/groupId&gt;
+008.    &lt;artifactId&gt;jboss-as-helloworld-osgi&lt;/artifactId&gt;
+009.    &lt;version&gt;7.0.0-SNAPSHOT&lt;/version&gt;
+010.    &lt;packaging&gt;bundle&lt;/packaging&gt;
+011.    &lt;name&gt;JBoss AS Quickstarts: Helloworld OSGi&lt;/name&gt;
+012.
+013.    &lt;url&gt;http://jboss.org/jbossas/osgi&lt;/url&gt;
+014.    &lt;licenses&gt;
+015.       &lt;license&gt;
+016.          &lt;name&gt;GNU Lesser General Public License&lt;/name&gt;
+017.          &lt;url&gt;http://www.gnu.org/copyleft/lesser.html&lt;/url&gt;
+018.          &lt;distribution&gt;repo&lt;/distribution&gt;
+019.       &lt;/license&gt;
+020.    &lt;/licenses&gt;
+021.
+022.    &lt;properties&gt;
+023.       &lt;!-- Explicitly declaring the source encoding eliminates the following message: --&gt;
+024.       &lt;!-- [WARNING] Using platform encoding (UTF-8 actually) to copy filtered
+025.            resources, i.e. build is platform dependent! --&gt;
+026.       &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+027.    &lt;/properties&gt;
+028.
+029.    &lt;!-- Include the JBoss Maven repository so we can access JBoss artifacts --&gt;
+030.    &lt;repositories&gt;
+031.       &lt;repository&gt;
+032.          &lt;id&gt;jboss-public-repository&lt;/id&gt;
+033.          &lt;name&gt;JBoss Repository&lt;/name&gt;
+034.          &lt;url&gt;https://repository.jboss.org/nexus/content/groups/public
+035.          &lt;/url&gt;
+036.          &lt;releases&gt;
+037.             &lt;enabled&gt;true&lt;/enabled&gt;
+038.          &lt;/releases&gt;
+039.          &lt;snapshots&gt;
+040.             &lt;enabled&gt;false&lt;/enabled&gt;
+041.          &lt;/snapshots&gt;
+042.       &lt;/repository&gt;
+043.    &lt;/repositories&gt;
+044.
+045.    &lt;pluginRepositories&gt;
+046.       &lt;pluginRepository&gt;
+047.          &lt;id&gt;jboss-public-repository&lt;/id&gt;
+048.          &lt;name&gt;JBoss Repository&lt;/name&gt;
+049.          &lt;url&gt;https://repository.jboss.org/nexus/content/groups/public
+050.          &lt;/url&gt;
+051.          &lt;releases&gt;
+052.             &lt;enabled&gt;true&lt;/enabled&gt;
+053.          &lt;/releases&gt;
+054.          &lt;snapshots&gt;
+055.             &lt;enabled&gt;false&lt;/enabled&gt;
+056.          &lt;/snapshots&gt;
+057.       &lt;/pluginRepository&gt;
+058.    &lt;/pluginRepositories&gt;
+059.
+060.    &lt;dependencies&gt;
+061.       &lt;dependency&gt;
+062.          &lt;groupId&gt;org.osgi&lt;/groupId&gt;
+063.          &lt;artifactId&gt;org.osgi.core&lt;/artifactId&gt;
+064.          &lt;version&gt;4.2.0&lt;/version&gt;
+065.          &lt;scope&gt;provided&lt;/scope&gt;
+066.       &lt;/dependency&gt;
+067.    &lt;/dependencies&gt;
+068.
+069.    &lt;build&gt;
+070.       &lt;plugins&gt;
+071.          &lt;plugin&gt;
+072.             &lt;!-- This plugin takes care of packaging the artifact as an OSGi Bundle --&gt;
+073.             &lt;groupId&gt;org.apache.felix&lt;/groupId&gt;
+074.             &lt;artifactId&gt;maven-bundle-plugin&lt;/artifactId&gt;
+075.             &lt;version&gt;2.3.4&lt;/version&gt;
+076.             &lt;extensions&gt;true&lt;/extensions&gt;
+077.             &lt;configuration&gt;
+078.                &lt;instructions&gt;
+079.                   &lt;!-- OSGi Manifest Metadata is specified here --&gt;
+080.                   &lt;!-- The Bundle SymbolicName is the same as the artifact ID --&gt;
+081.                   &lt;Bundle-SymbolicName&gt;${project.artifactId}&lt;/Bundle-SymbolicName&gt;
+082.
+083.                   &lt;!-- Specify the Bundle activator, which is invoked when
+084.                        the Bundle is started --&gt;
+085.                   &lt;Bundle-Activator&gt;org.jboss.as.quickstarts.helloworld.osgi.Activator&lt;/Bundle-Activator&gt;
+086.
+087.                   &lt;!-- Automatically compute all the necessary Import-Package statements --&gt;
+088.                   &lt;Import-Package&gt;*&lt;/Import-Package&gt;
+089.
+090.                   &lt;!-- This bundle does not export any packages --&gt;
+091.                   &lt;Export-Package/&gt;
+092.
+093.                   &lt;!-- Packages that are not exported but need to be included
+094.                        need to be listed as Private-Package --&gt;
+095.                   &lt;Private-Package&gt;org.jboss.as.quickstarts.helloworld.osgi&lt;/Private-Package&gt;
+096.                &lt;/instructions&gt;
+097.             &lt;/configuration&gt;
+098.          &lt;/plugin&gt;
+099.
+100.          &lt;!-- JBoss AS plugin to deploy war --&gt;
+101.          &lt;plugin&gt;
+102.             &lt;groupId&gt;org.jboss.as.plugins&lt;/groupId&gt;
+103.             &lt;artifactId&gt;jboss-as-maven-plugin&lt;/artifactId&gt;
+104.             &lt;version&gt;7.0.0.Beta5-SNAPSHOT&lt;/version&gt;
+105.             &lt;configuration&gt;
+106.                &lt;filename&gt;${project.build.finalName}.jar&lt;/filename&gt;
+107.             &lt;/configuration&gt;
+108.          &lt;/plugin&gt;
+109.       &lt;/plugins&gt;
+110.    &lt;/build&gt;
+111. &lt;/project&gt;
+----
+
+====
+[options="header"]
+|===============
+|Line numbers|Note
+|10| The packaging of the maven module is set to bundle . This instructs maven and the maven-bundle-plugin to create an OSGi bundle. 
+|62 - 67|Since the activator uses an OSGi interface, these are provided through the OSGi interfaces artifact.
+|66| Use the provided scope for dependencies that are either provided by the OSGi framework (i.e. JBoss AS) itself or for dependencies that are provided through separate bundles. 
+|71 - 98| The maven-bundle-plugin is used to create a bundle.  You can configure it create import and export statements, and to specify the activator in use. You can read more about the link:$$http://felix.apache.org/site/apache-felix-maven-bundle-plugin-bnd.html$$[OSGi Bundle Maven Plugin] on the Apache Felix site. 
+|100 - 108| We can use the jboss-as Maven plugin to deploy the bundle to JBoss AS as usual. 
+
+|===============
+
+
+As you can see, using OSGi with JBoss AS is pretty easy!
+
+[[sid-8094289_HelloworldOSGiquickstart-CreatinganewOSGibundleusingEclipse]]
+
+
+===Creating a new OSGi bundle using Eclipse
+
+Eclipse has built-in support for creating OSGi bundles. Eclipse is built on OSGi, therefore support for developing OSGi bundles inside Eclipse is quite extensive.
+
+ To quickly create an OSGi Bundle using Eclipse, follow these steps. In Eclipse do File -&gt; New -&gt; Project -&gt; Plug-in Project : 
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+ Select as the Target Platform a 'Standard' OSGi Framework and click Next &gt; . 
+
+ On the following page, you can specify the Bundle Symbolic Name, version, Bundle Activator and some other details. You may use the defaults, or, for example, you could put the Activator in a different package, e.g. org.jboss.as.quickstarts.helloworld.osgi.Activator . 
+
+ Click Next &gt; again. 
+
+On the Templates page select the 'Hello OSGi Bundle' template and click Finish:
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+ After clicking Finish , the Plug-In Development perspective will open with the Manifest Editor. The Manifest Editor facilitates editing of the OSGi Metadata, such as the Imported Packages in the _Dependencies_ tab and Exported Packages on the _Runtime_ tab: 
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+ Click on the _Activator_ link in the Manifest editor to open the Bundle Activator in the Java editor. 
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+ When finished making changes you can export your OSGi bundle so that it can be deployed directly into JBoss AS. Click on File -&gt; Export -&gt; Deployable plug-ins and fragments : 
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+ You have now created an OSGi Bundle, and the JAR can be found in the plugins directory of the location specified in the screen above. You can deploy it to JBoss AS using any of the standard deployment mechanisms described in the link:$$https://docs.jboss.org/author/pages/viewpage.action?pageId=8094314$$[Getting Started Guide] . 
+
+[[sid-8094290]]
+
+
+===The helloworld-osgi example in depth
+
+The OSGi Bundle has one Java Source file, the Bundle Activator:
+
+.Activator.java
+
+====
+----
+01. package org.jboss.as.quickstarts.helloworld.osgi;
+02.
+03. import org.osgi.framework.BundleActivator;
+04. import org.osgi.framework.BundleContext;
+05.
+06. public class Activator implements BundleActivator {
+07.    public void start(BundleContext context) throws Exception {
+08.       System.out.println("Hello AS7 World!!");
+09.    }
+10.
+11.    public void stop(BundleContext context) throws Exception {
+12.       System.out.println("Bye AS7 World!!");
+13.    }
+14. }
+----
+
+====
+The bundle activator is very simple, and just prints out a message when the bundle starts and stops - allowing you to verify that OSGi is working properly.
+
+ Now, let's look at the pom.xml , where we create the bundle: 
+
+.pom.xml
+
+====
+----
+002. &lt;project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+003.    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+004.    http://maven.apache.org/maven-v4_0_0.xsd"&gt;
+005.    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+006.
+007.    &lt;groupId&gt;org.jboss.as.quickstarts&lt;/groupId&gt;
+008.    &lt;artifactId&gt;jboss-as-helloworld-osgi&lt;/artifactId&gt;
+009.    &lt;version&gt;7.0.0-SNAPSHOT&lt;/version&gt;
+010.    &lt;packaging&gt;bundle&lt;/packaging&gt;
+011.    &lt;name&gt;JBoss AS Quickstarts: Helloworld OSGi&lt;/name&gt;
+012.
+013.    &lt;url&gt;http://jboss.org/jbossas/osgi&lt;/url&gt;
+014.    &lt;licenses&gt;
+015.       &lt;license&gt;
+016.          &lt;name&gt;GNU Lesser General Public License&lt;/name&gt;
+017.          &lt;url&gt;http://www.gnu.org/copyleft/lesser.html&lt;/url&gt;
+018.          &lt;distribution&gt;repo&lt;/distribution&gt;
+019.       &lt;/license&gt;
+020.    &lt;/licenses&gt;
+021.
+022.    &lt;properties&gt;
+023.       &lt;!-- Explicitly declaring the source encoding eliminates the following message: --&gt;
+024.       &lt;!-- [WARNING] Using platform encoding (UTF-8 actually) to copy filtered
+025.            resources, i.e. build is platform dependent! --&gt;
+026.       &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+027.    &lt;/properties&gt;
+028.
+029.    &lt;!-- Include the JBoss Maven repository so we can access JBoss artifacts --&gt;
+030.    &lt;repositories&gt;
+031.       &lt;repository&gt;
+032.          &lt;id&gt;jboss-public-repository&lt;/id&gt;
+033.          &lt;name&gt;JBoss Repository&lt;/name&gt;
+034.          &lt;url&gt;https://repository.jboss.org/nexus/content/groups/public
+035.          &lt;/url&gt;
+036.          &lt;releases&gt;
+037.             &lt;enabled&gt;true&lt;/enabled&gt;
+038.          &lt;/releases&gt;
+039.          &lt;snapshots&gt;
+040.             &lt;enabled&gt;false&lt;/enabled&gt;
+041.          &lt;/snapshots&gt;
+042.       &lt;/repository&gt;
+043.    &lt;/repositories&gt;
+044.
+045.    &lt;pluginRepositories&gt;
+046.       &lt;pluginRepository&gt;
+047.          &lt;id&gt;jboss-public-repository&lt;/id&gt;
+048.          &lt;name&gt;JBoss Repository&lt;/name&gt;
+049.          &lt;url&gt;https://repository.jboss.org/nexus/content/groups/public
+050.          &lt;/url&gt;
+051.          &lt;releases&gt;
+052.             &lt;enabled&gt;true&lt;/enabled&gt;
+053.          &lt;/releases&gt;
+054.          &lt;snapshots&gt;
+055.             &lt;enabled&gt;false&lt;/enabled&gt;
+056.          &lt;/snapshots&gt;
+057.       &lt;/pluginRepository&gt;
+058.    &lt;/pluginRepositories&gt;
+059.
+060.    &lt;dependencies&gt;
+061.       &lt;dependency&gt;
+062.          &lt;groupId&gt;org.osgi&lt;/groupId&gt;
+063.          &lt;artifactId&gt;org.osgi.core&lt;/artifactId&gt;
+064.          &lt;version&gt;4.2.0&lt;/version&gt;
+065.          &lt;scope&gt;provided&lt;/scope&gt;
+066.       &lt;/dependency&gt;
+067.    &lt;/dependencies&gt;
+068.
+069.    &lt;build&gt;
+070.       &lt;plugins&gt;
+071.          &lt;plugin&gt;
+072.             &lt;!-- This plugin takes care of packaging the artifact as an OSGi Bundle --&gt;
+073.             &lt;groupId&gt;org.apache.felix&lt;/groupId&gt;
+074.             &lt;artifactId&gt;maven-bundle-plugin&lt;/artifactId&gt;
+075.             &lt;version&gt;2.3.4&lt;/version&gt;
+076.             &lt;extensions&gt;true&lt;/extensions&gt;
+077.             &lt;configuration&gt;
+078.                &lt;instructions&gt;
+079.                   &lt;!-- OSGi Manifest Metadata is specified here --&gt;
+080.                   &lt;!-- The Bundle SymbolicName is the same as the artifact ID --&gt;
+081.                   &lt;Bundle-SymbolicName&gt;${project.artifactId}&lt;/Bundle-SymbolicName&gt;
+082.
+083.                   &lt;!-- Specify the Bundle activator, which is invoked when
+084.                        the Bundle is started --&gt;
+085.                   &lt;Bundle-Activator&gt;org.jboss.as.quickstarts.helloworld.osgi.Activator&lt;/Bundle-Activator&gt;
+086.
+087.                   &lt;!-- Automatically compute all the necessary Import-Package statements --&gt;
+088.                   &lt;Import-Package&gt;*&lt;/Import-Package&gt;
+089.
+090.                   &lt;!-- This bundle does not export any packages --&gt;
+091.                   &lt;Export-Package/&gt;
+092.
+093.                   &lt;!-- Packages that are not exported but need to be included
+094.                        need to be listed as Private-Package --&gt;
+095.                   &lt;Private-Package&gt;org.jboss.as.quickstarts.helloworld.osgi&lt;/Private-Package&gt;
+096.                &lt;/instructions&gt;
+097.             &lt;/configuration&gt;
+098.          &lt;/plugin&gt;
+099.
+100.          &lt;!-- JBoss AS plugin to deploy war --&gt;
+101.          &lt;plugin&gt;
+102.             &lt;groupId&gt;org.jboss.as.plugins&lt;/groupId&gt;
+103.             &lt;artifactId&gt;jboss-as-maven-plugin&lt;/artifactId&gt;
+104.             &lt;version&gt;7.0.0.Beta5-SNAPSHOT&lt;/version&gt;
+105.             &lt;configuration&gt;
+106.                &lt;filename&gt;${project.build.finalName}.jar&lt;/filename&gt;
+107.             &lt;/configuration&gt;
+108.          &lt;/plugin&gt;
+109.       &lt;/plugins&gt;
+110.    &lt;/build&gt;
+111. &lt;/project&gt;
+----
+
+====
+[options="header"]
+|===============
+|Line numbers|Note
+|10| The packaging of the maven module is set to bundle . This instructs maven and the maven-bundle-plugin to create an OSGi bundle. 
+|62 - 67|Since the activator uses an OSGi interface, these are provided through the OSGi interfaces artifact.
+|66| Use the provided scope for dependencies that are either provided by the OSGi framework (i.e. JBoss AS) itself or for dependencies that are provided through separate bundles. 
+|71 - 98| The maven-bundle-plugin is used to create a bundle.  You can configure it create import and export statements, and to specify the activator in use. You can read more about the link:$$http://felix.apache.org/site/apache-felix-maven-bundle-plugin-bnd.html$$[OSGi Bundle Maven Plugin] on the Apache Felix site. 
+|100 - 108| We can use the jboss-as Maven plugin to deploy the bundle to JBoss AS as usual. 
+
+|===============
+
+
+As you can see, using OSGi with JBoss AS is pretty easy!
+
+[[sid-8094291]]
+
+
+===Creating a new OSGi Bundle using Eclipse
+
+Eclipse has built-in support for creating OSGi bundles. Eclipse is built on OSGi, therefore support for developing OSGi bundles inside Eclipse is quite extensive.
+
+ To quickly create an OSGi Bundle using Eclipse, follow these steps. In Eclipse do File -&gt; New -&gt; Project -&gt; Plug-in Project : 
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+ Select as the Target Platform a 'Standard' OSGi Framework and click Next &gt; . 
+
+ On the following page, you can specify the Bundle Symbolic Name, version, Bundle Activator and some other details. You may use the defaults, or, for example, you could put the Activator in a different package, e.g. org.jboss.as.quickstarts.helloworld.osgi.Activator . 
+
+ Click Next &gt; again. 
+
+On the Templates page select the 'Hello OSGi Bundle' template and click Finish:
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+ After clicking Finish , the Plug-In Development perspective will open with the Manifest Editor. The Manifest Editor facilitates editing of the OSGi Metadata, such as the Imported Packages in the _Dependencies_ tab and Exported Packages on the _Runtime_ tab: 
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+ Click on the _Activator_ link in the Manifest editor to open the Bundle Activator in the Java editor. 
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+ When finished making changes you can export your OSGi bundle so that it can be deployed directly into JBoss AS. Click on File -&gt; Export -&gt; Deployable plug-ins and fragments : 
+
+ 
+.TODO InformalFigure image title empty
+image::[]
+
+ 
+
+ You have now created an OSGi Bundle, and the JAR can be found in the plugins directory of the location specified in the screen above. You can deploy it to JBoss AS using any of the standard deployment mechanisms described in the link:$$https://docs.jboss.org/author/pages/viewpage.action?pageId=8094314$$[Getting Started Guide] . 
+

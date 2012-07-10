@@ -1,0 +1,486 @@
+[[sid-8094279]]
+
+== Login quickstart
+
+This quickstart shows you how to create and deploy an application which persists information to a database to JBoss AS. Information is displayed using JSF views, business logic is encapsulated in CDI beans, information is persisted using JPA, and transactions can be controlled manually or using EJB.
+
+ Switch to the quickstarts/login directory and instruct Maven to build and deploy the application: 
+
+
+----
+mvn package jboss-as:deploy
+----
+
+ The quickstart uses a Maven plugin to deploy the application. The plugin requires JBoss AS to be running (you can find out how to start the server in <<sid-8094268>> or <<sid-8094269>> ). 
+
+Or you can start the server using an IDE, like Eclipse.
+
+ Visit link:$$http://localhost:8080/jboss-as-login$$[] and try logging in with the username demo and password demo . Now, click on Logout and then on View Users . From this screen you can add yourself as a user, and then login as this user. 
+
+
+[TIP]
+====
+Should you wish to undeploy the quickstart, or redeploy after making some changes, it's pretty easy:
+
+
+*  mvn jboss-as:deploy - deploy any changes to the application to the application server 
+
+
+*  mvn jboss-as:undeploy - undeploy the example from JBoss AS 
+
+
+====
+
+
+It's time to pull the covers back and dive into the internals of the example application.
+
+[[sid-8094279_Loginquickstart-DeployingtheLoginexampleusingEclipse]]
+
+
+===Deploying the Login example using Eclipse
+
+ You may choose to deploy the example using Eclipse. You'll need to have JBoss AS started in Eclipse (as described in <<sid-8094270>> ) and to have imported the quickstarts into Eclipse (as described in [Importing the quickstarts into Eclipse). 
+
+ With the quickstarts imported, you can deploy the example by right clicking on the jboss-as-login project, and choosing Run As -&gt; Run On Server : 
+
+ 
+.
+image::[]
+
+ 
+
+ Make sure the JBoss AS server is selected, and hit Finish : 
+
+ 
+.
+image::[]
+
+ 
+
+ You should see JBoss AS start up (unless you already started it in <<sid-8094270>> ) and the application deploy in the Console log: 
+
+ 
+.
+image::[]
+
+ 
+
+[[sid-8094279_Loginquickstart-Theloginexampleindepth]]
+
+
+===The login example in depth
+
+In the login example, all users are stored in an H2 database (an in-memory, embedded database provided out of the box in JBoss AS). Each user is stored as an entity, and entities are mapped to the database using JPA. By default, transactions are managed manually, using the JTA API. Optionally, you can use EJB to manage transactions (we'll look at how to enable that later). We need a transaction in progress in order to read and write any entities.
+
+ The login example is comprised of two JSF views, an entity, and a number of CDI beans. Additionally, there are the usual configuration files in WEB-INF/ (which can be found in the src/main/webapp directory of the example). Here we find beans.xml and face-config.xml tell JBoss AS to enable CDI and JSF for the application. Notice that we don't need a web.xml . There are two new configuration files in WEB-INF/classes/META-INF (which can be found in the src/main/resources directory of the example) — persistence.xml , which sets up JPA, and import.sql which Hibernate, the JPA provider in JBoss AS, will use to load the initial users into the application when the application starts. 
+
+ persistence.xml is pretty straight forward, and links JPA to a datasource: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/resources/META-INF/persistence.xml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|6|The persistence unit is given a name, so that the application can use multiple if needed. If only one is defined, JPA will automatically use it.
+|8|The persistence unit references a data source. Here we are using the built in, sample, data source.
+|10|JPA allows us to configure the JPA provider specific properties. Here we tell Hibernate to automatically create any needed tables when the application starts (and drop them when the application is stopped).
+
+|===============
+
+
+
+[TIP]
+====
+ JBoss AS ships with a sample datasource java:jboss/datasources/ExampleDS . This data source is backed by H2, an in-memory database. Whilst this datasource is great for quickstarts, you will probably want to use a different datasource in your application. The link:$$https://docs.jboss.org/author/pages/viewpage.action?pageId=8094314$$[Getting Started Guide] tells you how to create a new datasource. 
+
+
+====
+
+
+ Let's take a look at the JSF views. First up is src/main/webapp/home.xhtml : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/webapp/home.xhtml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|7|As we have multiple views in this application, we've created a template that defines the common elements. We'll examine this next. Here we define the "content" section of the page, which will be inserted into the template.
+|9|We output any messages for the user at the top of the form, such as the welcome message when you login.
+|11 - 16|The login form fields are only rendered if there is no logged in user. This allows us to prevent someone from logging in twice.
+|17, 18|Depending on whether the user is logged in or not, we display a log out or log in button. We also display a link to the page which shows the available users.
+
+|===============
+
+
+Now let's take a look at the template. It defines common elements for the page, and allows pages which use it to insert content in various places.
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/webapp/template.xhtml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|9|The head, defined in case a page wants to add some content to the head of the page.
+|28|The content, defined by a page using this template, will be inserted here
+
+|===============
+
+
+Finally, let's take a look at the user management page. It uses a table to display all existing users, and provides a form to add users
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/webapp/users.xhtml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|11| The table which displays the current users in the database. The datatable references the users , and iterates over each one. Each user is assigned to the variable u , which we can use when laying out the table structure. 
+|13 - 15|Each column in the table is given a header, plus content.
+
+|===============
+
+
+Finally, we provide a simple form that allows you to add a new user.
+
+The example has one entity, which is mapped via JPA to the relational database:
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/User.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|6| The @Entity annotation used on the class tells JPA that this class should be mapped as a table in the database. 
+|8, 9| Every entity requires an id, the @Id annotation placed on a field (or a JavaBean mutator/accessor) tells JPA that this property is the id. You can use a synthetic id, or a natural id (as we do here). 
+|10, 11|The entity also stores the real name of the user, and their password.
+|13 - 35|As this is Java, every property needs an accessor/mutator!
+
+|===============
+
+
+ Next up, let's take a look at Credentials.java , a data structure used to  temporarily hold the credentials the user has entered whilst logging in. 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/Credentials.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|6|The bean is request scoped, as entered data is naturally scoped to a request.
+|7|The bean is given a name, so we can access it from JSF.
+|10 - 27|The bean needs to store the username and password entered, and also make them usable via accessors and mutators.
+
+|===============
+
+
+ The logic allowing a user to log in, and storing who is currently logged in, is encoded in Login.java : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/Login.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|12|The bean is session scoped, meaning that the currently logged user is kept until the session ends.
+|13|The bean is given a name, so we can access it from JSF.
+|18, 19| We inject the credentials filled in on the web page so we can check them in the login() method. 
+|21, 22|We inject the user manager, which takes care of loading and adding users from the database.
+|26 - 33| The login method is triggered when the Login button is pressed. It asks the userManager to find a user with matching username and password, and if a user is found, sets the currentUser and displays a message to the user. 
+|35 - 39| The logout method is triggered when the Logout button is pressed. It clearsthe currentUser and displays a message to the user. 
+|45 - 49| The current user is exposed to the application using a producer method, which means that there is no coupling between a class wanting to know the current user, and the Login class. The LoggedIn qualifier is used to indicate that this User is special. 
+
+|===============
+
+
+ Now, let's look at the most interesting part of the application, how we interact with the database. As we mentioned earlier, by default the application uses the JTA API to manually control transactions. To implement both approaches, we've defined a UserManager interface, with two implementations, one of which (the EJB variant) is as an alternative which can be enabled via a deployment descriptor. Let's first look at the interface, and the manual transaction control variant. 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/UserManager.java status code: 404.
+
+ The methods are fairly self explanatory, so let's move on quickly to the implementation, ManagedBeanUserManager : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/ManagedBeanUserManager.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|13|The bean is given a name, so we can access it from JSF.
+|14| The bean is request scoped, meaning that the new user object being added is the same for every invocation of userManager during the request. 
+|17 - 18|We inject a JDK logger so that we can log when a user is added
+|20 - 21| We inject the entity manager. This was set up in persistence.xml . 
+|29 - 45|We create a named producer method that uses JPA to expose all the users currently in the database. This allows JSF to access this list. We also make this request scoped so that the database isn't hit every time we need to display the users list.
+|47 - 61| addUser takes the newUser and persists it to the database. 
+|63 - 88| The findUser() method can check whether a user with a matching username and password exists, and return it if it does. 
+|90 - 95| The newUser is exposed to JSF by using a named producer method. 
+
+|===============
+
+
+You've probably noticed two things as you've read through this. Firstly, that manually managing transactions is a real pain. Secondly, you may be wondering how the entity manager and the logger are injected. First, let's tidy up the transaction manager, and use EJB to provide us with declarative transaction support.
+
+ The class EJBUserManager provides this, and is defined as an alternative. Alternatives are disabled by default, and when enabled replace the original implementation. In order to enable this variant of UserManager , edit beans.xml and uncomment the alternative. Your beans.xml should now look like: 
+
+
+----
+&lt;beans xmlns="http://java.sun.com/xml/ns/javaee"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="
+      http://java.sun.com/xml/ns/javaee
+      http://java.sun.com/xml/ns/javaee/beans_1_0.xsd"&gt;
+
+      &lt;!-- Uncomment this alternative to see EJB declarative transactions in use --&gt;
+      &lt;alternatives&gt;
+         &lt;class&gt;org.jboss.as.quickstarts.login.EJBUserManager&lt;/class&gt;
+      &lt;/alternatives&gt;
+&lt;/beans&gt;
+----
+
+ Now, let's look at EJBUserManager : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/EJBUserManager.java status code: 404.
+
+Using declarative transaction management has allowed us to remove a third of the lines of code from the class, but more importantly emphasizes the functionality of the class. Much better!
+
+
+[NOTE]
+====
+Sharp eyed developers who are used to Java EE will have noticed that we have added this EJB to a war. This is the key improvement offered in EJB 3.1 (which was first included in Java EE 6).
+
+
+====
+
+
+ Finally, let's take a look at the Resources class, which provides resources such as the entity manager. CDI recommends using "resource producers", as we do in this example, to alias resources to CDI beans, allowing for a  consistent style throughout our application: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/Resources.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|13 - 16| We use the "resource producer" pattern, from CDI, to "alias" the old fashioned @PersistenceContext injection of the entity manager to a CDI style injection. This allows us to use a consistent injection style ( @Inject ) throughout the application. 
+|18 - 22|We expose a JDK logger for injection. In order to save a bit more boiler plate, we automatically set the logger category as the class name!
+
+|===============
+
+
+That concludes our tour of the login application!
+
+[[sid-8094282]]
+
+
+===Deploying the Login example using Eclipse
+
+ You may choose to deploy the example using Eclipse. You'll need to have JBoss AS started in Eclipse (as described in <<sid-8094270>> ) and to have imported the quickstarts into Eclipse (as described in [Importing the quickstarts into Eclipse). 
+
+ With the quickstarts imported, you can deploy the example by right clicking on the jboss-as-login project, and choosing Run As -&gt; Run On Server : 
+
+ 
+.
+image::[]
+
+ 
+
+ Make sure the JBoss AS server is selected, and hit Finish : 
+
+ 
+.
+image::[]
+
+ 
+
+ You should see JBoss AS start up (unless you already started it in <<sid-8094270>> ) and the application deploy in the Console log: 
+
+ 
+.
+image::[]
+
+ 
+
+[[sid-8094283]]
+
+
+===The login example in depth
+
+In the login example, all users are stored in an H2 database (an in-memory, embedded database provided out of the box in JBoss AS). Each user is stored as an entity, and entities are mapped to the database using JPA. By default, transactions are managed manually, using the JTA API. Optionally, you can use EJB to manage transactions (we'll look at how to enable that later). We need a transaction in progress in order to read and write any entities.
+
+ The login example is comprised of two JSF views, an entity, and a number of CDI beans. Additionally, there are the usual configuration files in WEB-INF/ (which can be found in the src/main/webapp directory of the example). Here we find beans.xml and face-config.xml tell JBoss AS to enable CDI and JSF for the application. Notice that we don't need a web.xml . There are two new configuration files in WEB-INF/classes/META-INF (which can be found in the src/main/resources directory of the example) — persistence.xml , which sets up JPA, and import.sql which Hibernate, the JPA provider in JBoss AS, will use to load the initial users into the application when the application starts. 
+
+ persistence.xml is pretty straight forward, and links JPA to a datasource: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/resources/META-INF/persistence.xml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|6|The persistence unit is given a name, so that the application can use multiple if needed. If only one is defined, JPA will automatically use it.
+|8|The persistence unit references a data source. Here we are using the built in, sample, data source.
+|10|JPA allows us to configure the JPA provider specific properties. Here we tell Hibernate to automatically create any needed tables when the application starts (and drop them when the application is stopped).
+
+|===============
+
+
+
+[TIP]
+====
+ JBoss AS ships with a sample datasource java:jboss/datasources/ExampleDS . This data source is backed by H2, an in-memory database. Whilst this datasource is great for quickstarts, you will probably want to use a different datasource in your application. The link:$$https://docs.jboss.org/author/pages/viewpage.action?pageId=8094314$$[Getting Started Guide] tells you how to create a new datasource. 
+
+
+====
+
+
+ Let's take a look at the JSF views. First up is src/main/webapp/home.xhtml : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/webapp/home.xhtml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|7|As we have multiple views in this application, we've created a template that defines the common elements. We'll examine this next. Here we define the "content" section of the page, which will be inserted into the template.
+|9|We output any messages for the user at the top of the form, such as the welcome message when you login.
+|11 - 16|The login form fields are only rendered if there is no logged in user. This allows us to prevent someone from logging in twice.
+|17, 18|Depending on whether the user is logged in or not, we display a log out or log in button. We also display a link to the page which shows the available users.
+
+|===============
+
+
+Now let's take a look at the template. It defines common elements for the page, and allows pages which use it to insert content in various places.
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/webapp/template.xhtml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|9|The head, defined in case a page wants to add some content to the head of the page.
+|28|The content, defined by a page using this template, will be inserted here
+
+|===============
+
+
+Finally, let's take a look at the user management page. It uses a table to display all existing users, and provides a form to add users
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/webapp/users.xhtml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|11| The table which displays the current users in the database. The datatable references the users , and iterates over each one. Each user is assigned to the variable u , which we can use when laying out the table structure. 
+|13 - 15|Each column in the table is given a header, plus content.
+
+|===============
+
+
+Finally, we provide a simple form that allows you to add a new user.
+
+The example has one entity, which is mapped via JPA to the relational database:
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/User.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|6| The @Entity annotation used on the class tells JPA that this class should be mapped as a table in the database. 
+|8, 9| Every entity requires an id, the @Id annotation placed on a field (or a JavaBean mutator/accessor) tells JPA that this property is the id. You can use a synthetic id, or a natural id (as we do here). 
+|10, 11|The entity also stores the real name of the user, and their password.
+|13 - 35|As this is Java, every property needs an accessor/mutator!
+
+|===============
+
+
+ Next up, let's take a look at Credentials.java , a data structure used to  temporarily hold the credentials the user has entered whilst logging in. 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/Credentials.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|6|The bean is request scoped, as entered data is naturally scoped to a request.
+|7|The bean is given a name, so we can access it from JSF.
+|10 - 27|The bean needs to store the username and password entered, and also make them usable via accessors and mutators.
+
+|===============
+
+
+ The logic allowing a user to log in, and storing who is currently logged in, is encoded in Login.java : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/Login.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|12|The bean is session scoped, meaning that the currently logged user is kept until the session ends.
+|13|The bean is given a name, so we can access it from JSF.
+|18, 19| We inject the credentials filled in on the web page so we can check them in the login() method. 
+|21, 22|We inject the user manager, which takes care of loading and adding users from the database.
+|26 - 33| The login method is triggered when the Login button is pressed. It asks the userManager to find a user with matching username and password, and if a user is found, sets the currentUser and displays a message to the user. 
+|35 - 39| The logout method is triggered when the Logout button is pressed. It clearsthe currentUser and displays a message to the user. 
+|45 - 49| The current user is exposed to the application using a producer method, which means that there is no coupling between a class wanting to know the current user, and the Login class. The LoggedIn qualifier is used to indicate that this User is special. 
+
+|===============
+
+
+ Now, let's look at the most interesting part of the application, how we interact with the database. As we mentioned earlier, by default the application uses the JTA API to manually control transactions. To implement both approaches, we've defined a UserManager interface, with two implementations, one of which (the EJB variant) is as an alternative which can be enabled via a deployment descriptor. Let's first look at the interface, and the manual transaction control variant. 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/UserManager.java status code: 404.
+
+ The methods are fairly self explanatory, so let's move on quickly to the implementation, ManagedBeanUserManager : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/ManagedBeanUserManager.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|13|The bean is given a name, so we can access it from JSF.
+|14| The bean is request scoped, meaning that the new user object being added is the same for every invocation of userManager during the request. 
+|17 - 18|We inject a JDK logger so that we can log when a user is added
+|20 - 21| We inject the entity manager. This was set up in persistence.xml . 
+|29 - 45|We create a named producer method that uses JPA to expose all the users currently in the database. This allows JSF to access this list. We also make this request scoped so that the database isn't hit every time we need to display the users list.
+|47 - 61| addUser takes the newUser and persists it to the database. 
+|63 - 88| The findUser() method can check whether a user with a matching username and password exists, and return it if it does. 
+|90 - 95| The newUser is exposed to JSF by using a named producer method. 
+
+|===============
+
+
+You've probably noticed two things as you've read through this. Firstly, that manually managing transactions is a real pain. Secondly, you may be wondering how the entity manager and the logger are injected. First, let's tidy up the transaction manager, and use EJB to provide us with declarative transaction support.
+
+ The class EJBUserManager provides this, and is defined as an alternative. Alternatives are disabled by default, and when enabled replace the original implementation. In order to enable this variant of UserManager , edit beans.xml and uncomment the alternative. Your beans.xml should now look like: 
+
+
+----
+&lt;beans xmlns="http://java.sun.com/xml/ns/javaee"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="
+      http://java.sun.com/xml/ns/javaee
+      http://java.sun.com/xml/ns/javaee/beans_1_0.xsd"&gt;
+
+      &lt;!-- Uncomment this alternative to see EJB declarative transactions in use --&gt;
+      &lt;alternatives&gt;
+         &lt;class&gt;org.jboss.as.quickstarts.login.EJBUserManager&lt;/class&gt;
+      &lt;/alternatives&gt;
+&lt;/beans&gt;
+----
+
+ Now, let's look at EJBUserManager : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/EJBUserManager.java status code: 404.
+
+Using declarative transaction management has allowed us to remove a third of the lines of code from the class, but more importantly emphasizes the functionality of the class. Much better!
+
+
+[NOTE]
+====
+Sharp eyed developers who are used to Java EE will have noticed that we have added this EJB to a war. This is the key improvement offered in EJB 3.1 (which was first included in Java EE 6).
+
+
+====
+
+
+ Finally, let's take a look at the Resources class, which provides resources such as the entity manager. CDI recommends using "resource producers", as we do in this example, to alias resources to CDI beans, allowing for a  consistent style throughout our application: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/login/src/main/java/org/jboss/as/quickstarts/login/Resources.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|13 - 16| We use the "resource producer" pattern, from CDI, to "alias" the old fashioned @PersistenceContext injection of the entity manager to a CDI style injection. This allows us to use a consistent injection style ( @Inject ) throughout the application. 
+|18 - 22|We expose a JDK logger for injection. In order to save a bit more boiler plate, we automatically set the logger category as the class name!
+
+|===============
+
+
+That concludes our tour of the login application!
+

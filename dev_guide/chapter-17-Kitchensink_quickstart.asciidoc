@@ -1,0 +1,1070 @@
+[[sid-8094284]]
+
+== Kitchensink quickstart
+
+This quickstart shows off all the new features of Java EE 6, and makes a great starting point for your project.
+
+
+[TIP]
+.Bean Validation
+====
+Bean Validation is a new specification in Java EE 6, inspired by Hibernate Validator. It allows application developers to specify constraints once (often in their domain model), and have them applied in all layers of the application, protecting data and giving useful feedback to users.
+
+
+====
+
+
+
+[TIP]
+.JAX-RS: The Java API for RESTful Web Services
+====
+JAX-RS is a new specification in Java EE 6. It allows application developers to easily expose Java services as RESTful web services.
+
+
+====
+
+
+ Switch to the quickstarts/kitchensink directory and instruct Maven to build and deploy the application: 
+
+
+----
+mvn package jboss-as:deploy
+----
+
+ The quickstart uses a Maven plugin to deploy the application. The plugin requires JBoss AS to be running (you can find out how to start the server in <<sid-8094268>> or <<sid-8094269>> ). 
+
+Or you can start the server using an IDE, like Eclipse.
+
+ Now, check if the application has deployed properly by clicking link:$$http://localhost:8080/jboss-as-kitchensink$$[] . If you see a splash page it's all working! 
+
+
+[TIP]
+====
+Should you wish to undeploy the quickstart, or redeploy after making some changes, it's pretty easy:
+
+
+*  mvn jboss-as:deploy - deploy any changes to the application to the application server 
+
+
+*  mvn jboss-as:undeploy - undeploy the example from JBoss AS 
+
+
+====
+
+
+It's time to pull the covers back and dive into the internals of the example application.
+
+[[sid-8094284_Kitchensinkquickstart-DeployingtheKitchensinkexampleusingEclipse]]
+
+
+===Deploying the Kitchensink example using Eclipse
+
+ You may choose to deploy the example using Eclipse. You'll need to have JBoss AS started in Eclipse (as described in <<sid-8094270>> ) and to have imported the quickstarts into Eclipse (as described in <<sid-8094271>> ). 
+
+ With the quickstarts imported, you can deploy the example by right clicking on the jboss-as-kitchensink project, and choosing Run As -&gt; Run On Server : 
+
+ 
+.
+image::[]
+
+ 
+
+ Make sure the JBoss AS server is selected, and hit Finish : 
+
+ 
+.
+image::[]
+
+ 
+
+ You should see JBoss AS start up (unless you already started it in <<sid-8094270>> ) and the application deploy in the Console log: 
+
+ 
+.
+image::[]
+
+ 
+
+[[sid-8094284_Kitchensinkquickstart-Thekitchensinkexampleindepth]]
+
+
+===The kitchensink example in depth
+
+The kitchensink application shows off a number of Java EE technologies such as CDI, JSF, EJB, JTA, JAX-RS and Arquillian. It does this by providing a member registration database, available via JSF and JAX-RS.
+
+ As usual, let's start by looking at the necessary deployment descriptors. By now, we're very used to  seeing beans.xml and faces-config.xml in WEB-INF/ (which can be found in the src/main/webapp directory of the example). Notice that, once again, we don't need a web.xml . There are two configuration files in WEB-INF/classes/META-INF (which can be found in the src/main/resources directory of the example) — persistence.xml , which sets up JPA, and import.sql which Hibernate, the JPA provider in JBoss AS 7, will use to load the initial users into the application when the application starts. We discussed both of these files in detail in <<sid-8094283>> , and these are largely the same. 
+
+ Next, let's take a look at the JSF view the user sees. As usual, we use a template to provide the sidebar and footer. This one lives in WEB-INF/templates/default.xhtml : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/webapp/WEB-INF/templates/default.xhtml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|6 - 10| We have a common &lt;head&gt; element, where we define styles and more. 
+|14 - 51, 56 - 61|This application defines a common sidebar and footer, putting them in the template means we only have to define them once/
+|52 - 54|The content is inserted here, and defined by views using this template.
+
+|===============
+
+
+ That leaves the main page, index.xhtml , in which we place the content unique to the main page: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/webapp/index.xhtml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|12 - 48|The JSF form allows us to register new users. There should be one already created when the application started.
+|22, 31, 40| The application uses Bean Validation to validate data entry. The error messages from Bean Validation are automatically attached to the relevant field by JSF, and adding a messages JSF component will display them. 
+|53 - 77|This application exposes REST endpoints for each registered member. The application helpfully displays the URL to the REST endpoint on this page.
+
+|===============
+
+
+ Next, let's take a look at the Member entity, before we look at how the application is wired together: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/java/org/jboss/as/quickstarts/kitchensink/model/Member.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|20| As usual with JPA, we define that the class is an entity by adding @Entity 
+|21| Members are exposed as a RESTful service using JAX-RS. We can use JAXB to map the object to XML and to do this we need to add @XmlRootElement . 
+|31 - 33|Bean Validation allows constraints to be defined once (on the entity) and applied everywhere. Here we constrain the person's name to a certain size and regular expression.
+|38| Hibernate Validator also offers some extra validations such as @Email . 
+|41 - 43| @Digits , @NotNull and @Size are further examples of constraints. 
+
+|===============
+
+
+ Next, let's take a look at MemberListProducer , which is responsible for building the list of members, ordered by name. It uses JPA 2 criteria to do this. 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/java/org/jboss/as/quickstarts/kitchensink/data/MemberListProducer.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|18| This bean is request scoped, meaning that any fields (such as members ) will be stored for the entire request. 
+|26 - 30|The list of members is exposed as a producer method, it's also available via EL.
+|32 - 34|The observer method is notified whenever a member is created, removed, or updated. This allows us to refresh the list of members whenever they are needed. This is a good approach as it allows us to cache the list of members, but keep it up to date at the same time.
+|36 - 45|JPA 2's criteria API is used to create a list of members sorted by name. You can try out the type safe criteria API as well by swapping the criteria statements as described.
+
+|===============
+
+
+ Let's now look at MemberRegistration , the class that allows us to create new members from the JSF page 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/java/org/jboss/as/quickstarts/kitchensink/controller/MemberRegistration.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|18|This bean requires transactions as it needs to write to the database. Making this an EJB gives us access to declarative transactions - much simpler than manual transaction control!
+|21| Stereotypes, such as @Model allow grouping of common functionality. Here we use the built in @Model stereotype to give us a request scoped, named bean. 
+|26 - 28|Seam Solder, used in this project offers an injectable logger based on JBoss Logging.
+|47|An event is sent every time a member is updated. This allows other pieces of code (in this example the member list is refreshed) to react to changes in the member list without any coupling to this class.
+
+|===============
+
+
+
+[TIP]
+====
+ Seam Solder is a swiss army knife for any CDI based application. It offers some basic additions to the CDI programming model (such as an injectable, type-safe, logger) as well as utilities for developing CDI extensions. You can read more on the link:$$http://seamframework.org/Seam3/Solder$$[Solder project page] . 
+
+
+====
+
+
+ Now, let's take a look at the Resources class, which provides resources such as the entity manager. CDI recommends using "resource producers", as we do in this example, to alias resources to CDI beans, allowing for a  consistent style throughout our application: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/java/org/jboss/as/quickstarts/kitchensink/util/Resources.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|21 - 24| We use the "resource producer" pattern, from CDI, to "alias" the old fashioned @PersistenceContext injection of the entity manager to a CDI style injection. This allows us to use. 
+
+|===============
+
+
+ If you want to define your own datasource, take a look at the link:$$https://docs.jboss.org/author/pages/viewpage.action?pageId=8094314$$[Getting Started Guide] or at link:$$http://community.jboss.org/wiki/DataSourceConfigurationInAS7$$[the JBoss AS wiki] . 
+
+ Before we wrap up our tour of the kitchensink example application, let's take a look at how the JAX-RS endpoints are created. Firstly, {JaxRSActivator}}, which extends Application and is annotated with @ApplicationPath , is the Java EE 6 "no XML" approach to activating JAX-RS. 
+
+ The real work goes in MemberResourceRESTService , which produces the endpoint: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/java/org/jboss/as/quickstarts/kitchensink/rest/MemberResourceRESTService.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|20| The @Path annotation tells JAX-RS that this class provides a REST endpoint mapped to rest/members (concatenating the path from the activator with the path for this endpoint). 
+|23, 24|JAX-RS endpoints are CDI enabled, and can use CDI-style injection.
+|26 - 35| The listAllMembers() method is called when the raw endpoint is accessed and offers up a list of endpoints. Notice that the object is automatically mapped to XML by JAXB. 
+|37 - 42| The lookupMemberById() method is called when the endpoint is accessed with a member id parameter appended (for example rest/members/1). Again, the object is automatically mapped to XML by JAXB. 
+
+|===============
+
+
+[[sid-8094284_Kitchensinkquickstart-Arquillian]]
+
+
+====Arquillian
+
+If you've been following along with the Test Driven Development craze of the past few years, you're probably getting a bit nervous by now, wondering how on earth you are going to test your application. Lucky for you, the Arquillian project is here to help!
+
+Arquillian provides all the boiler plate for running your test inside JBoss AS, allowing you to concentrate on testing your application. In order to do that, it utilizes Shrinkwrap, a fluent API for defining packaging, to create an archive to deploy. We'll go through the testcase, and how you configure Arquillian in just a moment, but first let's run the test.
+
+ Before we start, we need to let Arquillian know the path to our JBoss AS install. Open up src/test/resources/arquillian.xml and set the jbossHome property to the path to your JBoss AS install: 
+
+ 
+.
+image::[]
+
+ 
+
+Now, make sure JBoss AS is not running (so that the instance started for running the test does not interfere), and then run the tests from the command line by typing:
+
+
+----
+mvn clean test -Parq-jbossas-managed
+----
+
+ You should see JBoss AS start up, a test.war deployed, test executed, and then the results displayed to you on the console: 
+
+
+[listing]
+....
+$ &gt; mvn clean test -Parq-jbossas-managed
+
+
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building JBoss AS Quickstarts: Kitchensink 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO]
+[INFO] --- maven-clean-plugin:2.4.1:clean (default-clean) @ jboss-as-kitchensink ---
+[INFO] Deleting /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target
+[INFO]
+[INFO] --- maven-resources-plugin:2.4.3:resources (default-resources) @ jboss-as-kitchensink ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO]
+[INFO] --- maven-compiler-plugin:2.3.1:compile (default-compile) @ jboss-as-kitchensink ---
+[INFO] Compiling 6 source files to /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/classes
+[INFO]
+[INFO] --- maven-resources-plugin:2.4.3:testResources (default-testResources) @ jboss-as-kitchensink ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO]
+[INFO] --- maven-compiler-plugin:2.3.1:testCompile (default-testCompile) @ jboss-as-kitchensink ---
+[INFO] Compiling 1 source file to /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/test-classes
+[INFO]
+[INFO] --- maven-surefire-plugin:2.7.2:test (default-test) @ jboss-as-kitchensink ---
+[INFO] Surefire report directory: /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/surefire-reports
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest
+Jun 25, 2011 7:17:49 PM org.jboss.arquillian.container.impl.client.container.ContainerRegistryCreator getActivatedConfiguration
+INFO: Could not read active container configuration: null
+log4j:WARN No appenders could be found for logger (org.jboss.remoting).
+log4j:WARN Please initialize the log4j system properly.
+Jun 25, 2011 7:17:54 PM org.jboss.as.arquillian.container.managed.ManagedDeployableContainer startInternal
+INFO: Starting container with: [java, -Djboss.home.dir=/Users/pmuir/development/jboss, -Dorg.jboss.boot.log.file=/Users/pmuir/development/jboss/standalone/log/boot.log, -Dlogging.configuration=file:/Users/pmuir/development/jboss/standalone/configuration/logging.properties, -jar, /Users/pmuir/development/jboss/jboss-modules.jar, -mp, /Users/pmuir/development/jboss/modules, -logmodule, org.jboss.logmanager, -jaxpmodule, javax.xml.jaxp-provider, org.jboss.as.standalone, -server-config, standalone.xml]
+19:17:55,107 INFO  [org.jboss.modules] JBoss Modules version 1.0.0.CR4
+19:17:55,329 INFO  [org.jboss.msc] JBoss MSC version 1.0.0.CR2
+19:17:55,386 INFO  [org.jboss.as] JBoss AS 7.0.0.Beta4-SNAPSHOT "(TBD)" starting
+19:17:56,159 INFO  [org.jboss.as] creating http management service using network interface (management) port (9990) securePort (-1)
+19:17:56,181 INFO  [org.jboss.as.logging] Removing bootstrap log handlers
+19:17:56,189 INFO  [org.jboss.as.naming] (Controller Boot Thread) Activating Naming Subsystem
+19:17:56,203 INFO  [org.jboss.as.naming] (MSC service thread 1-4) Starting Naming Service
+19:17:56,269 INFO  [org.jboss.as.security] (Controller Boot Thread) Activating Security Subsystem
+19:17:56,305 INFO  [org.jboss.remoting] (MSC service thread 1-1) JBoss Remoting version 3.2.0.Beta2
+19:17:56,317 INFO  [org.xnio] (MSC service thread 1-1) XNIO Version 3.0.0.Beta3
+19:17:56,331 INFO  [org.xnio.nio] (MSC service thread 1-1) XNIO NIO Implementation Version 3.0.0.Beta3
+19:17:56,522 INFO  [org.jboss.as.connector.subsystems.datasources] (Controller Boot Thread) Deploying JDBC-compliant driver class org.h2.Driver (version 1.2)
+19:17:56,572 INFO  [org.apache.catalina.core.AprLifecycleListener] (MSC service thread 1-7) The Apache Tomcat Native library which allows optimal performance in production environments was not found on the java.library.path: .:/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java
+19:17:56,627 INFO  [org.jboss.as.remoting] (MSC service thread 1-3) Listening on /127.0.0.1:9999
+19:17:56,641 INFO  [org.jboss.as.jmx.JMXConnectorService] (MSC service thread 1-2) Starting remote JMX connector
+19:17:56,705 INFO  [org.jboss.as.ee] (Controller Boot Thread) Activating EE subsystem
+19:17:56,761 INFO  [org.apache.coyote.http11.Http11Protocol] (MSC service thread 1-7) Starting Coyote HTTP/1.1 on http--127.0.0.1-8080
+19:17:56,793 INFO  [org.jboss.as.connector] (MSC service thread 1-3) Starting JCA Subsystem (JBoss IronJacamar 1.0.0.CR2)
+19:17:56,837 INFO  [org.jboss.as.connector.subsystems.datasources] (MSC service thread 1-2) Bound data source [java:jboss/datasources/ExampleDS]
+19:17:57,335 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-1) Starting deployment of "arquillian-service"
+19:17:57,348 INFO  [org.jboss.as.deployment] (MSC service thread 1-7) Started FileSystemDeploymentService for directory /Users/pmuir/development/jboss/standalone/deployments
+19:17:57,693 INFO  [org.jboss.as] (Controller Boot Thread) JBoss AS 7.0.0.Beta4-SNAPSHOT "(TBD)" started in 2806ms - Started 111 of 138 services (27 services are passive or on-demand)
+19:18:00,596 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-6) Stopped deployment arquillian-service in 8ms
+19:18:01,394 INFO  [org.jboss.as.server.deployment] (pool-2-thread-7) Content added at location /Users/pmuir/development/jboss/standalone/data/content/0a/9e20b7bc978fd2778b89c7c06e4d3e1f308dfe/content
+19:18:01,403 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-7) Starting deployment of "arquillian-service"
+19:18:01,650 INFO  [org.jboss.as.server.deployment] (pool-2-thread-6) Content added at location /Users/pmuir/development/jboss/standalone/data/content/94/8324ab8f5a693c67fa57b59323304d3947bbf6/content
+19:18:01,659 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-5) Starting deployment of "test.war"
+19:18:01,741 INFO  [org.jboss.jpa] (MSC service thread 1-7) read persistence.xml for primary
+19:18:01,764 INFO  [org.jboss.weld] (MSC service thread 1-3) Processing CDI deployment: test.war
+19:18:01,774 INFO  [org.jboss.as.ejb3.deployment.processors.EjbJndiBindingsDeploymentUnitProcessor] (MSC service thread 1-3) JNDI bindings for session bean named MemberRegistration in deployment unit deployment "test.war" are as follows:
+
+	java:global/test/MemberRegistration!org.jboss.as.quickstarts.kitchensink.controller.MemberRegistration
+	java:app/test/MemberRegistration!org.jboss.as.quickstarts.kitchensink.controller.MemberRegistration
+	java:module/MemberRegistration!org.jboss.as.quickstarts.kitchensink.controller.MemberRegistration
+	java:global/test/MemberRegistration
+	java:app/test/MemberRegistration
+	java:module/MemberRegistration
+
+19:18:01,908 INFO  [org.jboss.weld] (MSC service thread 1-5) Starting Services for CDI deployment: test.war
+19:18:02,131 INFO  [org.jboss.weld.Version] (MSC service thread 1-5) WELD-000900 1.1.1 (Final)
+19:18:02,169 INFO  [org.jboss.weld] (MSC service thread 1-2) Starting weld service
+19:18:02,174 INFO  [org.jboss.as.arquillian] (MSC service thread 1-3) Arquillian deployment detected: ArquillianConfig[service=jboss.arquillian.config."test.war",unit=test.war,tests=[org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest]]
+19:18:02,179 INFO  [org.jboss.jpa] (MSC service thread 1-6) starting Persistence Unit Service 'test.war#primary'
+19:18:02,322 INFO  [org.hibernate.annotations.common.Version] (MSC service thread 1-6) Hibernate Commons Annotations 3.2.0.Final
+19:18:02,328 INFO  [org.hibernate.cfg.Environment] (MSC service thread 1-6) HHH00412:Hibernate [WORKING]
+19:18:02,330 INFO  [org.hibernate.cfg.Environment] (MSC service thread 1-6) HHH00206:hibernate.properties not found
+19:18:02,332 INFO  [org.hibernate.cfg.Environment] (MSC service thread 1-6) HHH00021:Bytecode provider name : javassist
+19:18:02,354 INFO  [org.hibernate.ejb.Ejb3Configuration] (MSC service thread 1-6) HHH00204:Processing PersistenceUnitInfo [
+	name: primary
+	...]
+19:18:02,400 WARN  [org.hibernate.cfg.AnnotationBinder] (MSC service thread 1-6) HHH00194:Package not found or wo package-info.java: org.jboss.as.quickstarts.kitchensink.test
+19:18:02,400 WARN  [org.hibernate.cfg.AnnotationBinder] (MSC service thread 1-6) HHH00194:Package not found or wo package-info.java: org.jboss.as.quickstarts.kitchensink.controller
+19:18:02,401 WARN  [org.hibernate.cfg.AnnotationBinder] (MSC service thread 1-6) HHH00194:Package not found or wo package-info.java: org.jboss.as.quickstarts.kitchensink.util
+19:18:02,401 WARN  [org.hibernate.cfg.AnnotationBinder] (MSC service thread 1-6) HHH00194:Package not found or wo package-info.java: org.jboss.as.quickstarts.kitchensink.model
+19:18:02,592 INFO  [org.hibernate.service.jdbc.connections.internal.ConnectionProviderInitiator] (MSC service thread 1-6) HHH00130:Instantiating explicit connection provider: org.hibernate.ejb.connection.InjectedDataSourceConnectionProvider
+19:18:02,852 INFO  [org.hibernate.dialect.Dialect] (MSC service thread 1-6) HHH00400:Using dialect: org.hibernate.dialect.H2Dialect
+19:18:02,858 WARN  [org.hibernate.dialect.H2Dialect] (MSC service thread 1-6) HHH00431:Unable to determine H2 database version, certain features may not work
+19:18:02,862 INFO  [org.hibernate.engine.jdbc.internal.LobCreatorBuilder] (MSC service thread 1-6) HHH00423:Disabling contextual LOB creation as JDBC driver reported JDBC version [3] less than 4
+19:18:02,870 INFO  [org.hibernate.engine.transaction.internal.TransactionFactoryInitiator] (MSC service thread 1-6) HHH00268:Transaction strategy: org.hibernate.engine.transaction.internal.jta.CMTTransactionFactory
+19:18:02,874 INFO  [org.hibernate.hql.internal.ast.ASTQueryTranslatorFactory] (MSC service thread 1-6) HHH00397:Using ASTQueryTranslatorFactory
+19:18:02,911 INFO  [org.hibernate.validator.util.Version] (MSC service thread 1-6) Hibernate Validator 4.1.0.Final
+19:18:02,917 INFO  [org.hibernate.validator.engine.resolver.DefaultTraversableResolver] (MSC service thread 1-6) Instantiated an instance of org.hibernate.validator.engine.resolver.JPATraversableResolver.
+19:18:03,079 INFO  [org.hibernate.tool.hbm2ddl.SchemaExport] (MSC service thread 1-6) HHH00227:Running hbm2ddl schema export
+19:18:03,093 INFO  [org.hibernate.tool.hbm2ddl.SchemaExport] (MSC service thread 1-6) HHH00230:Schema export complete
+19:18:03,217 INFO  [org.jboss.web] (MSC service thread 1-5) registering web context: /test
+19:18:03,407 WARN  [org.jboss.weld.Bean] (RMI TCP Connection(3)-127.0.0.1) WELD-000018 Executing producer field or method [method] @Produces public org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest.produceLog(InjectionPoint) on incomplete declaring bean Managed Bean [class org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest] with qualifiers [@Any @Default] due to circular injection
+19:18:03,427 WARN  [org.jboss.weld.Bean] (RMI TCP Connection(3)-127.0.0.1) WELD-000018 Executing producer field or method [method] @Produces public org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest.produceLog(InjectionPoint) on incomplete declaring bean Managed Bean [class org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest] with qualifiers [@Any @Default] due to circular injection
+19:18:03,450 WARN  [org.jboss.as.ejb3.component.EJBComponent] (RMI TCP Connection(3)-127.0.0.1) EJBTHREE-2120: deprecated getTransactionAttributeType method called (dev problem)
+19:18:03,459 INFO  [org.jboss.as.quickstarts.kitchensink.controller.MemberRegistration] (RMI TCP Connection(3)-127.0.0.1) Registering Jane Doe
+19:18:03,616 INFO  [org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest] (RMI TCP Connection(3)-127.0.0.1) Jane Doe was persisted with id 1
+19:18:03,686 INFO  [org.jboss.jpa] (MSC service thread 1-1) stopping Persistence Unit Service 'test.war#primary'
+19:18:03,687 INFO  [org.hibernate.tool.hbm2ddl.SchemaExport] (MSC service thread 1-1) HHH00227:Running hbm2ddl schema export
+19:18:03,690 INFO  [org.jboss.weld] (MSC service thread 1-3) Stopping weld service
+19:18:03,692 INFO  [org.hibernate.tool.hbm2ddl.SchemaExport] (MSC service thread 1-1) HHH00230:Schema export complete
+19:18:03,704 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-8) Stopped deployment test.war in 52ms
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 14.859 sec
+
+Results :
+
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 22.305s
+[INFO] Finished at: Sat Jun 25 19:18:04 BST 2011
+[INFO] Final Memory: 17M/125M
+[INFO] ------------------------------------------------------------------------
+$ &gt;
+....
+
+ As you can see, that didn't take too long (approximately 15s), and is great for running in your QA environment, but if you running locally, you might prefer to connect to a running JBoss AS. To do that, start up JBoss AS (as described in <<sid-8094267>> ). Now, run your test, but use the arq-jbossas-remote profile: 
+
+
+----
+mvn clean test -Parq-jbossas-remote
+----
+
+
+[listing]
+....
+$&gt; mvn clean test -Parq-jbossas-remote
+
+
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building JBoss AS Quickstarts: Kitchensink 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO]
+[INFO] --- maven-clean-plugin:2.4.1:clean (default-clean) @ jboss-as-kitchensink ---
+[INFO] Deleting /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target
+[INFO]
+[INFO] --- maven-resources-plugin:2.4.3:resources (default-resources) @ jboss-as-kitchensink ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO]
+[INFO] --- maven-compiler-plugin:2.3.1:compile (default-compile) @ jboss-as-kitchensink ---
+[INFO] Compiling 6 source files to /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/classes
+[INFO]
+[INFO] --- maven-resources-plugin:2.4.3:testResources (default-testResources) @ jboss-as-kitchensink ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO]
+[INFO] --- maven-compiler-plugin:2.3.1:testCompile (default-testCompile) @ jboss-as-kitchensink ---
+[INFO] Compiling 1 source file to /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/test-classes
+[INFO]
+[INFO] --- maven-surefire-plugin:2.7.2:test (default-test) @ jboss-as-kitchensink ---
+[INFO] Surefire report directory: /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/surefire-reports
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest
+Jun 25, 2011 7:22:28 PM org.jboss.arquillian.container.impl.client.container.ContainerRegistryCreator getActivatedConfiguration
+INFO: Could not read active container configuration: null
+log4j:WARN No appenders could be found for logger (org.jboss.as.arquillian.container.MBeanServerConnectionProvider).
+log4j:WARN Please initialize the log4j system properly.
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.13 sec
+
+Results :
+
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 10.474s
+[INFO] Finished at: Sat Jun 25 19:22:33 BST 2011
+[INFO] Final Memory: 17M/125M
+[INFO] ------------------------------------------------------------------------
+$ &gt;
+....
+
+
+[IMPORTANT]
+====
+ Arquillian defines two modes, _managed_ and _remote_ . The _managed_ mode will take care of starting and stopping the server for you, whilst the _remote_ mode connects to an already running server. 
+
+
+====
+
+
+This time you can see the test didn't start JBoss AS (if you check the instance you started, you will see the application was deployed there), and the test ran a lot faster (approximately 4s).
+
+ We can also run the test from Eclipse, in both managed and remote modes. First, we'll run in in managed mode. In order to set up the correct dependencies on your classpath, right click on the project, and select Properties : 
+
+ 
+.
+image::[]
+
+ 
+
+Now, locate the Maven panel:
+
+ 
+.
+image::[]
+
+ 
+
+ And activate the arq-jbossas-managed profile: 
+
+ 
+.
+image::[]
+
+ 
+
+ Finally, hit Ok , and then confirm you want to update the project configuration: 
+
+ 
+.
+image::[]
+
+ 
+
+ Once the project has built, locate the MemberRegistrationTest in src/test/java , right click on the test, and choose Run As -&gt; JUnit Test... : 
+
+ 
+.
+image::[]
+
+ 
+
+You should see JBoss AS start in the Eclipse Console, the test be deployed, and finally the JUnit View pop up with the result (a pass of course!).
+
+ We can also run the test in an already running instance of Eclipse. Simply change the active profile to arq-jbossas-remote : 
+
+ 
+.
+image::[]
+
+ 
+
+ Now, make sure JBoss AS is running, right click on the test case and choose Run As -&gt; JUnit Test : 
+
+ 
+.
+image::[]
+
+ 
+
+Again, you'll see the test run in the server, and the JUnit View pop up, with the test passing.
+
+So far so good, the test is running in both Eclipse and from the command line. But what does the test look like?
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/test/java/org/jboss/as/quickstarts/kitchensink/test/MemberRegistrationTest.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|23| @RunWith(Arquillian.class) tells JUnit to hand control over to Arquillian when executing tests 
+|25| The @Deployment annotation identifies the createTestArchive static method to Arquillian as the one to use to determine which resources and classes to deploy 
+|28|We add just the classes needed for the test, no more
+|29| We also add persistence.xml as our test is going to use the database 
+|30| Of course, we must add beans.xml to enable CDI 
+|24 - 28|Arquillian allows us to inject beans into the test case
+|41 - 49|The test method works as you would expect - creates a new member, registers them, and then verifies that the member was created
+
+|===============
+
+
+ As you can see, Arquillian has lived up to the promise - the test case is focused on _what_ to test (the @Deployment method) and _how_ to test (the @Test method). It's also worth noting that this isn't a simplistic unit test - this is a fully fledged integration test that uses the database. 
+
+ Now, let's look at how we configure Arquillian. First of all, let's take a look at arquillian.xml in src/test/resources . 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/test/resources/arquillian.xml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|9|Arquillian deploys the test war to JBoss AS, and doesn't write it to disk. For debugging, it can be very useful to see exactly what is in your war, so Arquillian allows you to export the war when the tests runs
+|13 - 17|Arquillian currently needs configuring to use JMX to connect to JBoss AS
+
+|===============
+
+
+ Now, we need to look at how we select between containers in the pom.xml : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/pom.xml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|204|The profile needs an id so we can activate from Eclipse or the command line
+|206 - 211|Arquillian decides which container to use depending on your classpath. Here we define the managed JBoss AS container.
+|222 - 217|Arquillian decides which container to use depending on your classpath. Here we define the remote JBoss AS container.
+
+|===============
+
+
+And that's it! As you can see Arquillian delivers simple and true testing. You can concentrate on writing your test functionality, and run your tests in the same environment in which you will run your application.
+
+
+[TIP]
+====
+Arquillian also offers other containers, allowing you to run your tests against Weld Embedded (super fast, but your enterprise services are mocked), GlassFish, and more
+
+
+====
+
+
+That concludes our tour of the kitchensink quickstart. If you would like to use this project as a basis for your own application on JBoss AS, you can of course copy this application sources and modify it.
+
+[[sid-8094285]]
+
+
+===Deploying the Kitchensink example using Eclipse
+
+ You may choose to deploy the example using Eclipse. You'll need to have JBoss AS started in Eclipse (as described in <<sid-8094270>> ) and to have imported the quickstarts into Eclipse (as described in <<sid-8094271>> ). 
+
+ With the quickstarts imported, you can deploy the example by right clicking on the jboss-as-kitchensink project, and choosing Run As -&gt; Run On Server : 
+
+ 
+.
+image::[]
+
+ 
+
+ Make sure the JBoss AS server is selected, and hit Finish : 
+
+ 
+.
+image::[]
+
+ 
+
+ You should see JBoss AS start up (unless you already started it in <<sid-8094270>> ) and the application deploy in the Console log: 
+
+ 
+.
+image::[]
+
+ 
+
+[[sid-8094286]]
+
+
+===The kitchensink example in depth
+
+The kitchensink application shows off a number of Java EE technologies such as CDI, JSF, EJB, JTA, JAX-RS and Arquillian. It does this by providing a member registration database, available via JSF and JAX-RS.
+
+ As usual, let's start by looking at the necessary deployment descriptors. By now, we're very used to  seeing beans.xml and faces-config.xml in WEB-INF/ (which can be found in the src/main/webapp directory of the example). Notice that, once again, we don't need a web.xml . There are two configuration files in WEB-INF/classes/META-INF (which can be found in the src/main/resources directory of the example) — persistence.xml , which sets up JPA, and import.sql which Hibernate, the JPA provider in JBoss AS 7, will use to load the initial users into the application when the application starts. We discussed both of these files in detail in <<sid-8094283>> , and these are largely the same. 
+
+ Next, let's take a look at the JSF view the user sees. As usual, we use a template to provide the sidebar and footer. This one lives in WEB-INF/templates/default.xhtml : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/webapp/WEB-INF/templates/default.xhtml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|6 - 10| We have a common &lt;head&gt; element, where we define styles and more. 
+|14 - 51, 56 - 61|This application defines a common sidebar and footer, putting them in the template means we only have to define them once/
+|52 - 54|The content is inserted here, and defined by views using this template.
+
+|===============
+
+
+ That leaves the main page, index.xhtml , in which we place the content unique to the main page: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/webapp/index.xhtml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|12 - 48|The JSF form allows us to register new users. There should be one already created when the application started.
+|22, 31, 40| The application uses Bean Validation to validate data entry. The error messages from Bean Validation are automatically attached to the relevant field by JSF, and adding a messages JSF component will display them. 
+|53 - 77|This application exposes REST endpoints for each registered member. The application helpfully displays the URL to the REST endpoint on this page.
+
+|===============
+
+
+ Next, let's take a look at the Member entity, before we look at how the application is wired together: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/java/org/jboss/as/quickstarts/kitchensink/model/Member.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|20| As usual with JPA, we define that the class is an entity by adding @Entity 
+|21| Members are exposed as a RESTful service using JAX-RS. We can use JAXB to map the object to XML and to do this we need to add @XmlRootElement . 
+|31 - 33|Bean Validation allows constraints to be defined once (on the entity) and applied everywhere. Here we constrain the person's name to a certain size and regular expression.
+|38| Hibernate Validator also offers some extra validations such as @Email . 
+|41 - 43| @Digits , @NotNull and @Size are further examples of constraints. 
+
+|===============
+
+
+ Next, let's take a look at MemberListProducer , which is responsible for building the list of members, ordered by name. It uses JPA 2 criteria to do this. 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/java/org/jboss/as/quickstarts/kitchensink/data/MemberListProducer.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|18| This bean is request scoped, meaning that any fields (such as members ) will be stored for the entire request. 
+|26 - 30|The list of members is exposed as a producer method, it's also available via EL.
+|32 - 34|The observer method is notified whenever a member is created, removed, or updated. This allows us to refresh the list of members whenever they are needed. This is a good approach as it allows us to cache the list of members, but keep it up to date at the same time.
+|36 - 45|JPA 2's criteria API is used to create a list of members sorted by name. You can try out the type safe criteria API as well by swapping the criteria statements as described.
+
+|===============
+
+
+ Let's now look at MemberRegistration , the class that allows us to create new members from the JSF page 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/java/org/jboss/as/quickstarts/kitchensink/controller/MemberRegistration.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|18|This bean requires transactions as it needs to write to the database. Making this an EJB gives us access to declarative transactions - much simpler than manual transaction control!
+|21| Stereotypes, such as @Model allow grouping of common functionality. Here we use the built in @Model stereotype to give us a request scoped, named bean. 
+|26 - 28|Seam Solder, used in this project offers an injectable logger based on JBoss Logging.
+|47|An event is sent every time a member is updated. This allows other pieces of code (in this example the member list is refreshed) to react to changes in the member list without any coupling to this class.
+
+|===============
+
+
+
+[TIP]
+====
+ Seam Solder is a swiss army knife for any CDI based application. It offers some basic additions to the CDI programming model (such as an injectable, type-safe, logger) as well as utilities for developing CDI extensions. You can read more on the link:$$http://seamframework.org/Seam3/Solder$$[Solder project page] . 
+
+
+====
+
+
+ Now, let's take a look at the Resources class, which provides resources such as the entity manager. CDI recommends using "resource producers", as we do in this example, to alias resources to CDI beans, allowing for a  consistent style throughout our application: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/java/org/jboss/as/quickstarts/kitchensink/util/Resources.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|21 - 24| We use the "resource producer" pattern, from CDI, to "alias" the old fashioned @PersistenceContext injection of the entity manager to a CDI style injection. This allows us to use. 
+
+|===============
+
+
+ If you want to define your own datasource, take a look at the link:$$https://docs.jboss.org/author/pages/viewpage.action?pageId=8094314$$[Getting Started Guide] or at link:$$http://community.jboss.org/wiki/DataSourceConfigurationInAS7$$[the JBoss AS wiki] . 
+
+ Before we wrap up our tour of the kitchensink example application, let's take a look at how the JAX-RS endpoints are created. Firstly, {JaxRSActivator}}, which extends Application and is annotated with @ApplicationPath , is the Java EE 6 "no XML" approach to activating JAX-RS. 
+
+ The real work goes in MemberResourceRESTService , which produces the endpoint: 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/main/java/org/jboss/as/quickstarts/kitchensink/rest/MemberResourceRESTService.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|20| The @Path annotation tells JAX-RS that this class provides a REST endpoint mapped to rest/members (concatenating the path from the activator with the path for this endpoint). 
+|23, 24|JAX-RS endpoints are CDI enabled, and can use CDI-style injection.
+|26 - 35| The listAllMembers() method is called when the raw endpoint is accessed and offers up a list of endpoints. Notice that the object is automatically mapped to XML by JAXB. 
+|37 - 42| The lookupMemberById() method is called when the endpoint is accessed with a member id parameter appended (for example rest/members/1). Again, the object is automatically mapped to XML by JAXB. 
+
+|===============
+
+
+[[sid-8094286_Thekitchensinkexampleindepth-Arquillian]]
+
+
+====Arquillian
+
+If you've been following along with the Test Driven Development craze of the past few years, you're probably getting a bit nervous by now, wondering how on earth you are going to test your application. Lucky for you, the Arquillian project is here to help!
+
+Arquillian provides all the boiler plate for running your test inside JBoss AS, allowing you to concentrate on testing your application. In order to do that, it utilizes Shrinkwrap, a fluent API for defining packaging, to create an archive to deploy. We'll go through the testcase, and how you configure Arquillian in just a moment, but first let's run the test.
+
+ Before we start, we need to let Arquillian know the path to our JBoss AS install. Open up src/test/resources/arquillian.xml and set the jbossHome property to the path to your JBoss AS install: 
+
+ 
+.
+image::[]
+
+ 
+
+Now, make sure JBoss AS is not running (so that the instance started for running the test does not interfere), and then run the tests from the command line by typing:
+
+
+----
+mvn clean test -Parq-jbossas-managed
+----
+
+ You should see JBoss AS start up, a test.war deployed, test executed, and then the results displayed to you on the console: 
+
+
+[listing]
+....
+$ &gt; mvn clean test -Parq-jbossas-managed
+
+
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building JBoss AS Quickstarts: Kitchensink 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO]
+[INFO] --- maven-clean-plugin:2.4.1:clean (default-clean) @ jboss-as-kitchensink ---
+[INFO] Deleting /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target
+[INFO]
+[INFO] --- maven-resources-plugin:2.4.3:resources (default-resources) @ jboss-as-kitchensink ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO]
+[INFO] --- maven-compiler-plugin:2.3.1:compile (default-compile) @ jboss-as-kitchensink ---
+[INFO] Compiling 6 source files to /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/classes
+[INFO]
+[INFO] --- maven-resources-plugin:2.4.3:testResources (default-testResources) @ jboss-as-kitchensink ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO]
+[INFO] --- maven-compiler-plugin:2.3.1:testCompile (default-testCompile) @ jboss-as-kitchensink ---
+[INFO] Compiling 1 source file to /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/test-classes
+[INFO]
+[INFO] --- maven-surefire-plugin:2.7.2:test (default-test) @ jboss-as-kitchensink ---
+[INFO] Surefire report directory: /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/surefire-reports
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest
+Jun 25, 2011 7:17:49 PM org.jboss.arquillian.container.impl.client.container.ContainerRegistryCreator getActivatedConfiguration
+INFO: Could not read active container configuration: null
+log4j:WARN No appenders could be found for logger (org.jboss.remoting).
+log4j:WARN Please initialize the log4j system properly.
+Jun 25, 2011 7:17:54 PM org.jboss.as.arquillian.container.managed.ManagedDeployableContainer startInternal
+INFO: Starting container with: [java, -Djboss.home.dir=/Users/pmuir/development/jboss, -Dorg.jboss.boot.log.file=/Users/pmuir/development/jboss/standalone/log/boot.log, -Dlogging.configuration=file:/Users/pmuir/development/jboss/standalone/configuration/logging.properties, -jar, /Users/pmuir/development/jboss/jboss-modules.jar, -mp, /Users/pmuir/development/jboss/modules, -logmodule, org.jboss.logmanager, -jaxpmodule, javax.xml.jaxp-provider, org.jboss.as.standalone, -server-config, standalone.xml]
+19:17:55,107 INFO  [org.jboss.modules] JBoss Modules version 1.0.0.CR4
+19:17:55,329 INFO  [org.jboss.msc] JBoss MSC version 1.0.0.CR2
+19:17:55,386 INFO  [org.jboss.as] JBoss AS 7.0.0.Beta4-SNAPSHOT "(TBD)" starting
+19:17:56,159 INFO  [org.jboss.as] creating http management service using network interface (management) port (9990) securePort (-1)
+19:17:56,181 INFO  [org.jboss.as.logging] Removing bootstrap log handlers
+19:17:56,189 INFO  [org.jboss.as.naming] (Controller Boot Thread) Activating Naming Subsystem
+19:17:56,203 INFO  [org.jboss.as.naming] (MSC service thread 1-4) Starting Naming Service
+19:17:56,269 INFO  [org.jboss.as.security] (Controller Boot Thread) Activating Security Subsystem
+19:17:56,305 INFO  [org.jboss.remoting] (MSC service thread 1-1) JBoss Remoting version 3.2.0.Beta2
+19:17:56,317 INFO  [org.xnio] (MSC service thread 1-1) XNIO Version 3.0.0.Beta3
+19:17:56,331 INFO  [org.xnio.nio] (MSC service thread 1-1) XNIO NIO Implementation Version 3.0.0.Beta3
+19:17:56,522 INFO  [org.jboss.as.connector.subsystems.datasources] (Controller Boot Thread) Deploying JDBC-compliant driver class org.h2.Driver (version 1.2)
+19:17:56,572 INFO  [org.apache.catalina.core.AprLifecycleListener] (MSC service thread 1-7) The Apache Tomcat Native library which allows optimal performance in production environments was not found on the java.library.path: .:/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java
+19:17:56,627 INFO  [org.jboss.as.remoting] (MSC service thread 1-3) Listening on /127.0.0.1:9999
+19:17:56,641 INFO  [org.jboss.as.jmx.JMXConnectorService] (MSC service thread 1-2) Starting remote JMX connector
+19:17:56,705 INFO  [org.jboss.as.ee] (Controller Boot Thread) Activating EE subsystem
+19:17:56,761 INFO  [org.apache.coyote.http11.Http11Protocol] (MSC service thread 1-7) Starting Coyote HTTP/1.1 on http--127.0.0.1-8080
+19:17:56,793 INFO  [org.jboss.as.connector] (MSC service thread 1-3) Starting JCA Subsystem (JBoss IronJacamar 1.0.0.CR2)
+19:17:56,837 INFO  [org.jboss.as.connector.subsystems.datasources] (MSC service thread 1-2) Bound data source [java:jboss/datasources/ExampleDS]
+19:17:57,335 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-1) Starting deployment of "arquillian-service"
+19:17:57,348 INFO  [org.jboss.as.deployment] (MSC service thread 1-7) Started FileSystemDeploymentService for directory /Users/pmuir/development/jboss/standalone/deployments
+19:17:57,693 INFO  [org.jboss.as] (Controller Boot Thread) JBoss AS 7.0.0.Beta4-SNAPSHOT "(TBD)" started in 2806ms - Started 111 of 138 services (27 services are passive or on-demand)
+19:18:00,596 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-6) Stopped deployment arquillian-service in 8ms
+19:18:01,394 INFO  [org.jboss.as.server.deployment] (pool-2-thread-7) Content added at location /Users/pmuir/development/jboss/standalone/data/content/0a/9e20b7bc978fd2778b89c7c06e4d3e1f308dfe/content
+19:18:01,403 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-7) Starting deployment of "arquillian-service"
+19:18:01,650 INFO  [org.jboss.as.server.deployment] (pool-2-thread-6) Content added at location /Users/pmuir/development/jboss/standalone/data/content/94/8324ab8f5a693c67fa57b59323304d3947bbf6/content
+19:18:01,659 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-5) Starting deployment of "test.war"
+19:18:01,741 INFO  [org.jboss.jpa] (MSC service thread 1-7) read persistence.xml for primary
+19:18:01,764 INFO  [org.jboss.weld] (MSC service thread 1-3) Processing CDI deployment: test.war
+19:18:01,774 INFO  [org.jboss.as.ejb3.deployment.processors.EjbJndiBindingsDeploymentUnitProcessor] (MSC service thread 1-3) JNDI bindings for session bean named MemberRegistration in deployment unit deployment "test.war" are as follows:
+
+	java:global/test/MemberRegistration!org.jboss.as.quickstarts.kitchensink.controller.MemberRegistration
+	java:app/test/MemberRegistration!org.jboss.as.quickstarts.kitchensink.controller.MemberRegistration
+	java:module/MemberRegistration!org.jboss.as.quickstarts.kitchensink.controller.MemberRegistration
+	java:global/test/MemberRegistration
+	java:app/test/MemberRegistration
+	java:module/MemberRegistration
+
+19:18:01,908 INFO  [org.jboss.weld] (MSC service thread 1-5) Starting Services for CDI deployment: test.war
+19:18:02,131 INFO  [org.jboss.weld.Version] (MSC service thread 1-5) WELD-000900 1.1.1 (Final)
+19:18:02,169 INFO  [org.jboss.weld] (MSC service thread 1-2) Starting weld service
+19:18:02,174 INFO  [org.jboss.as.arquillian] (MSC service thread 1-3) Arquillian deployment detected: ArquillianConfig[service=jboss.arquillian.config."test.war",unit=test.war,tests=[org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest]]
+19:18:02,179 INFO  [org.jboss.jpa] (MSC service thread 1-6) starting Persistence Unit Service 'test.war#primary'
+19:18:02,322 INFO  [org.hibernate.annotations.common.Version] (MSC service thread 1-6) Hibernate Commons Annotations 3.2.0.Final
+19:18:02,328 INFO  [org.hibernate.cfg.Environment] (MSC service thread 1-6) HHH00412:Hibernate [WORKING]
+19:18:02,330 INFO  [org.hibernate.cfg.Environment] (MSC service thread 1-6) HHH00206:hibernate.properties not found
+19:18:02,332 INFO  [org.hibernate.cfg.Environment] (MSC service thread 1-6) HHH00021:Bytecode provider name : javassist
+19:18:02,354 INFO  [org.hibernate.ejb.Ejb3Configuration] (MSC service thread 1-6) HHH00204:Processing PersistenceUnitInfo [
+	name: primary
+	...]
+19:18:02,400 WARN  [org.hibernate.cfg.AnnotationBinder] (MSC service thread 1-6) HHH00194:Package not found or wo package-info.java: org.jboss.as.quickstarts.kitchensink.test
+19:18:02,400 WARN  [org.hibernate.cfg.AnnotationBinder] (MSC service thread 1-6) HHH00194:Package not found or wo package-info.java: org.jboss.as.quickstarts.kitchensink.controller
+19:18:02,401 WARN  [org.hibernate.cfg.AnnotationBinder] (MSC service thread 1-6) HHH00194:Package not found or wo package-info.java: org.jboss.as.quickstarts.kitchensink.util
+19:18:02,401 WARN  [org.hibernate.cfg.AnnotationBinder] (MSC service thread 1-6) HHH00194:Package not found or wo package-info.java: org.jboss.as.quickstarts.kitchensink.model
+19:18:02,592 INFO  [org.hibernate.service.jdbc.connections.internal.ConnectionProviderInitiator] (MSC service thread 1-6) HHH00130:Instantiating explicit connection provider: org.hibernate.ejb.connection.InjectedDataSourceConnectionProvider
+19:18:02,852 INFO  [org.hibernate.dialect.Dialect] (MSC service thread 1-6) HHH00400:Using dialect: org.hibernate.dialect.H2Dialect
+19:18:02,858 WARN  [org.hibernate.dialect.H2Dialect] (MSC service thread 1-6) HHH00431:Unable to determine H2 database version, certain features may not work
+19:18:02,862 INFO  [org.hibernate.engine.jdbc.internal.LobCreatorBuilder] (MSC service thread 1-6) HHH00423:Disabling contextual LOB creation as JDBC driver reported JDBC version [3] less than 4
+19:18:02,870 INFO  [org.hibernate.engine.transaction.internal.TransactionFactoryInitiator] (MSC service thread 1-6) HHH00268:Transaction strategy: org.hibernate.engine.transaction.internal.jta.CMTTransactionFactory
+19:18:02,874 INFO  [org.hibernate.hql.internal.ast.ASTQueryTranslatorFactory] (MSC service thread 1-6) HHH00397:Using ASTQueryTranslatorFactory
+19:18:02,911 INFO  [org.hibernate.validator.util.Version] (MSC service thread 1-6) Hibernate Validator 4.1.0.Final
+19:18:02,917 INFO  [org.hibernate.validator.engine.resolver.DefaultTraversableResolver] (MSC service thread 1-6) Instantiated an instance of org.hibernate.validator.engine.resolver.JPATraversableResolver.
+19:18:03,079 INFO  [org.hibernate.tool.hbm2ddl.SchemaExport] (MSC service thread 1-6) HHH00227:Running hbm2ddl schema export
+19:18:03,093 INFO  [org.hibernate.tool.hbm2ddl.SchemaExport] (MSC service thread 1-6) HHH00230:Schema export complete
+19:18:03,217 INFO  [org.jboss.web] (MSC service thread 1-5) registering web context: /test
+19:18:03,407 WARN  [org.jboss.weld.Bean] (RMI TCP Connection(3)-127.0.0.1) WELD-000018 Executing producer field or method [method] @Produces public org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest.produceLog(InjectionPoint) on incomplete declaring bean Managed Bean [class org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest] with qualifiers [@Any @Default] due to circular injection
+19:18:03,427 WARN  [org.jboss.weld.Bean] (RMI TCP Connection(3)-127.0.0.1) WELD-000018 Executing producer field or method [method] @Produces public org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest.produceLog(InjectionPoint) on incomplete declaring bean Managed Bean [class org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest] with qualifiers [@Any @Default] due to circular injection
+19:18:03,450 WARN  [org.jboss.as.ejb3.component.EJBComponent] (RMI TCP Connection(3)-127.0.0.1) EJBTHREE-2120: deprecated getTransactionAttributeType method called (dev problem)
+19:18:03,459 INFO  [org.jboss.as.quickstarts.kitchensink.controller.MemberRegistration] (RMI TCP Connection(3)-127.0.0.1) Registering Jane Doe
+19:18:03,616 INFO  [org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest] (RMI TCP Connection(3)-127.0.0.1) Jane Doe was persisted with id 1
+19:18:03,686 INFO  [org.jboss.jpa] (MSC service thread 1-1) stopping Persistence Unit Service 'test.war#primary'
+19:18:03,687 INFO  [org.hibernate.tool.hbm2ddl.SchemaExport] (MSC service thread 1-1) HHH00227:Running hbm2ddl schema export
+19:18:03,690 INFO  [org.jboss.weld] (MSC service thread 1-3) Stopping weld service
+19:18:03,692 INFO  [org.hibernate.tool.hbm2ddl.SchemaExport] (MSC service thread 1-1) HHH00230:Schema export complete
+19:18:03,704 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-8) Stopped deployment test.war in 52ms
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 14.859 sec
+
+Results :
+
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 22.305s
+[INFO] Finished at: Sat Jun 25 19:18:04 BST 2011
+[INFO] Final Memory: 17M/125M
+[INFO] ------------------------------------------------------------------------
+$ &gt;
+....
+
+ As you can see, that didn't take too long (approximately 15s), and is great for running in your QA environment, but if you running locally, you might prefer to connect to a running JBoss AS. To do that, start up JBoss AS (as described in <<sid-8094267>> ). Now, run your test, but use the arq-jbossas-remote profile: 
+
+
+----
+mvn clean test -Parq-jbossas-remote
+----
+
+
+[listing]
+....
+$&gt; mvn clean test -Parq-jbossas-remote
+
+
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building JBoss AS Quickstarts: Kitchensink 7.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO]
+[INFO] --- maven-clean-plugin:2.4.1:clean (default-clean) @ jboss-as-kitchensink ---
+[INFO] Deleting /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target
+[INFO]
+[INFO] --- maven-resources-plugin:2.4.3:resources (default-resources) @ jboss-as-kitchensink ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO]
+[INFO] --- maven-compiler-plugin:2.3.1:compile (default-compile) @ jboss-as-kitchensink ---
+[INFO] Compiling 6 source files to /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/classes
+[INFO]
+[INFO] --- maven-resources-plugin:2.4.3:testResources (default-testResources) @ jboss-as-kitchensink ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO]
+[INFO] --- maven-compiler-plugin:2.3.1:testCompile (default-testCompile) @ jboss-as-kitchensink ---
+[INFO] Compiling 1 source file to /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/test-classes
+[INFO]
+[INFO] --- maven-surefire-plugin:2.7.2:test (default-test) @ jboss-as-kitchensink ---
+[INFO] Surefire report directory: /Users/pmuir/workspace/jboss-as-docs/quickstarts/kitchensink/target/surefire-reports
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running org.jboss.as.quickstarts.kitchensink.test.MemberRegistrationTest
+Jun 25, 2011 7:22:28 PM org.jboss.arquillian.container.impl.client.container.ContainerRegistryCreator getActivatedConfiguration
+INFO: Could not read active container configuration: null
+log4j:WARN No appenders could be found for logger (org.jboss.as.arquillian.container.MBeanServerConnectionProvider).
+log4j:WARN Please initialize the log4j system properly.
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.13 sec
+
+Results :
+
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 10.474s
+[INFO] Finished at: Sat Jun 25 19:22:33 BST 2011
+[INFO] Final Memory: 17M/125M
+[INFO] ------------------------------------------------------------------------
+$ &gt;
+....
+
+
+[IMPORTANT]
+====
+ Arquillian defines two modes, _managed_ and _remote_ . The _managed_ mode will take care of starting and stopping the server for you, whilst the _remote_ mode connects to an already running server. 
+
+
+====
+
+
+This time you can see the test didn't start JBoss AS (if you check the instance you started, you will see the application was deployed there), and the test ran a lot faster (approximately 4s).
+
+ We can also run the test from Eclipse, in both managed and remote modes. First, we'll run in in managed mode. In order to set up the correct dependencies on your classpath, right click on the project, and select Properties : 
+
+ 
+.
+image::[]
+
+ 
+
+Now, locate the Maven panel:
+
+ 
+.
+image::[]
+
+ 
+
+ And activate the arq-jbossas-managed profile: 
+
+ 
+.
+image::[]
+
+ 
+
+ Finally, hit Ok , and then confirm you want to update the project configuration: 
+
+ 
+.
+image::[]
+
+ 
+
+ Once the project has built, locate the MemberRegistrationTest in src/test/java , right click on the test, and choose Run As -&gt; JUnit Test... : 
+
+ 
+.
+image::[]
+
+ 
+
+You should see JBoss AS start in the Eclipse Console, the test be deployed, and finally the JUnit View pop up with the result (a pass of course!).
+
+ We can also run the test in an already running instance of Eclipse. Simply change the active profile to arq-jbossas-remote : 
+
+ 
+.
+image::[]
+
+ 
+
+ Now, make sure JBoss AS is running, right click on the test case and choose Run As -&gt; JUnit Test : 
+
+ 
+.
+image::[]
+
+ 
+
+Again, you'll see the test run in the server, and the JUnit View pop up, with the test passing.
+
+So far so good, the test is running in both Eclipse and from the command line. But what does the test look like?
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/test/java/org/jboss/as/quickstarts/kitchensink/test/MemberRegistrationTest.java status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|23| @RunWith(Arquillian.class) tells JUnit to hand control over to Arquillian when executing tests 
+|25| The @Deployment annotation identifies the createTestArchive static method to Arquillian as the one to use to determine which resources and classes to deploy 
+|28|We add just the classes needed for the test, no more
+|29| We also add persistence.xml as our test is going to use the database 
+|30| Of course, we must add beans.xml to enable CDI 
+|24 - 28|Arquillian allows us to inject beans into the test case
+|41 - 49|The test method works as you would expect - creates a new member, registers them, and then verifies that the member was created
+
+|===============
+
+
+ As you can see, Arquillian has lived up to the promise - the test case is focused on _what_ to test (the @Deployment method) and _how_ to test (the @Test method). It's also worth noting that this isn't a simplistic unit test - this is a fully fledged integration test that uses the database. 
+
+ Now, let's look at how we configure Arquillian. First of all, let's take a look at arquillian.xml in src/test/resources . 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/src/test/resources/arquillian.xml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|9|Arquillian deploys the test war to JBoss AS, and doesn't write it to disk. For debugging, it can be very useful to see exactly what is in your war, so Arquillian allows you to export the war when the tests runs
+|13 - 17|Arquillian currently needs configuring to use JMX to connect to JBoss AS
+
+|===============
+
+
+ Now, we need to look at how we select between containers in the pom.xml : 
+
+Code Snippet error: Unable to retrieve the URL: https://github.com/jbossas/quickstart/raw/master/kitchensink/pom.xml status code: 404.
+
+[options="header"]
+|===============
+|Line number|Note
+|204|The profile needs an id so we can activate from Eclipse or the command line
+|206 - 211|Arquillian decides which container to use depending on your classpath. Here we define the managed JBoss AS container.
+|222 - 217|Arquillian decides which container to use depending on your classpath. Here we define the remote JBoss AS container.
+
+|===============
+
+
+And that's it! As you can see Arquillian delivers simple and true testing. You can concentrate on writing your test functionality, and run your tests in the same environment in which you will run your application.
+
+
+[TIP]
+====
+Arquillian also offers other containers, allowing you to run your tests against Weld Embedded (super fast, but your enterprise services are mocked), GlassFish, and more
+
+
+====
+
+
+That concludes our tour of the kitchensink quickstart. If you would like to use this project as a basis for your own application on JBoss AS, you can of course copy this application sources and modify it.
+

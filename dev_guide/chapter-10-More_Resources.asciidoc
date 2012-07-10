@@ -1,0 +1,13 @@
+[[sid-8094265_GettingStartedDevelopingApplicationsGuide-MoreResources]]
+
+== More Resources
+
+
+|===============
+| link:$$https://docs.jboss.org/author/pages/viewpage.action?pageId=8094314$$[Getting Started Guide] |The Getting Started Guide covers topics such as server layout (what you can configure where), data source definition, and using the web management interface.
+| link:$$http://torquebox.org/2x/builds/LATEST/html-docs/$$[Torquebox] |Torque Box allows you to use all the familiar services from JBoss AS 7, but with Ruby.
+| link:$$http://community.jboss.org/wiki/JBossAS7FAQ$$[JBoss AS 7 FAQ] |Frequently Asked Questions for JBoss AS 7
+
+|===============
+
+
